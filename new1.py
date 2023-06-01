@@ -1,8 +1,11 @@
 import os
+import string
 import sys
+import time
 from pathlib import Path
 
-from PIL import Image, ImageFont, ImageOps
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 font = ImageFont.truetype(".\\Kalam-Bold.ttf", size=10)
 
@@ -15,16 +18,26 @@ def convert_image(infile_path: Path) -> Path:
 
         width, height = gray.size
         box_len = min(width, height)
-        left = (box_len / 2) - (width / 2)
-        right = (box_len / 2) + (width / 2)
-        top = (box_len / 2) - (height / 2)
-        bottom = (box_len / 2) + (height / 2)
+        left = (width / 2) - (box_len / 2)
+        right = (width / 2) + (box_len / 2)
+        top = (height / 2) - (box_len / 2)
+        bottom = (height / 2) + (box_len / 2)
 
         square = gray.crop((left, top, right, bottom))
 
         large = ImageOps.scale(
             square, ((1024 / box_len) + 1), resample=Image.Resampling.BOX
         )
+
+        imArr = np.array(large)
+
+        alph = Image.new("L", large.size, 0)
+        draw = ImageDraw.Draw(alph)
+        draw.pieslice([0, 0, large.size[0], large.size[1]], 0, 360, fill=255)
+
+        arAlpha = np.array(alph)
+
+        imArr = np.dstack((imArr, arAlpha))
 
         better_file_stem = infile_path.stem
 
@@ -40,12 +53,22 @@ def convert_image(infile_path: Path) -> Path:
         while "_" in better_file_stem:
             better_file_stem = better_file_stem.replace("_", "-")
 
-        outfile_path = Path(better_file_stem + "_remade" + ".bmp")
+        file_stem_list = list(better_file_stem)
+
+        for character in better_file_stem:
+            if character not in (string.ascii_letters + "- "):
+                file_stem_list.remove(character)
+
+        better_file_stem = "".join(file_stem_list)
+
+        outfile_path = Path(better_file_stem + "_remade" + ".png")
 
         if outfile_path.exists():
             os.remove(outfile_path.resolve())
 
-        large.save(outfile_path.resolve(), bitmap_format="bmp")
+        time.sleep(2)
+
+        Image.fromarray(imArr).save(outfile_path.resolve(), bitmap_format="png")
 
     created_files.append(outfile_path.resolve())
 
