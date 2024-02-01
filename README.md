@@ -16,13 +16,13 @@ An algorithmic generator for making string art out of digital images
 1. Clone the repository:
 
     ```sh
-    git clone https://github.com/your-username/your-project.git
+    git clone https://github.com/seanfroste/picture-loom-py.git
     ```
 
 2. Navigate to the project directory:
 
     ```sh
-    cd your-project
+    cd picture-loom-py
     ```
 
 3. (Optional) Create and activate a virtual environment:
