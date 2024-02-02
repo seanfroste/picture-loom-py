@@ -1,0 +1,102 @@
+# cropper_module/image_cropper.py
+from tkinter import Button, Canvas, Tk
+from typing import Optional
+
+from PIL import Image, ImageTk
+
+
+class ImageCropper:
+    """ImageCropper class for cropping an image"""
+
+    def __init__(self, root: Tk, image: Image.Image) -> None:
+        self.root: Tk = root
+        self.root.title("Image Cropper")
+
+        self.image: Image.Image = image
+        self.tk_image = ImageTk.PhotoImage(self.image)
+
+        self.canvas: Canvas = Canvas(
+            root, width=self.image.width, height=self.image.height
+        )
+        self.canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
+        self.canvas.pack()
+
+        self.start_x: int
+        self.start_y: int
+        self.rect_id: Optional[int] = None
+        self.cropped_image: Optional[Image.Image] = None
+
+        self.canvas.bind("<ButtonPress-1>", self.on_press)
+        self.canvas.bind("<B1-Motion>", self.on_drag)
+        self.canvas.bind("<ButtonRelease-1>", self.on_release)
+
+        self.confirm_button: Button = Button(
+            root, text="Confirm", command=self.confirm_crop
+        )
+        self.confirm_button.pack()
+
+    def on_press(self, event) -> None:
+        self.start_x, self.start_y = self.canvas.canvasx(event.x), self.canvas.canvasy(
+            event.y
+        )
+        if self.rect_id:
+            self.canvas.delete(self.rect_id)
+
+    def on_drag(self, event) -> None:
+        cur_x, cur_y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
+        side_length = min(abs(cur_x - self.start_x), abs(cur_y - self.start_y))
+
+        cur_x = (
+            self.start_x + side_length
+            if cur_x > self.start_x
+            else self.start_x - side_length
+        )
+        cur_y = (
+            self.start_y + side_length
+            if cur_y > self.start_y
+            else self.start_y - side_length
+        )
+
+        if self.rect_id:
+            self.canvas.delete(self.rect_id)
+
+        self.rect_id = self.canvas.create_rectangle(
+            self.start_x, self.start_y, cur_x, cur_y, outline="green"
+        )
+
+    def on_release(self, event) -> None:
+        cur_x, cur_y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
+        side_length = min(abs(cur_x - self.start_x), abs(cur_y - self.start_y))
+        end_x = (
+            self.start_x + side_length
+            if cur_x > self.start_x
+            else self.start_x - side_length
+        )
+        end_y = (
+            self.start_y + side_length
+            if cur_y > self.start_y
+            else self.start_y - side_length
+        )
+
+        self.cropped_image = self.image.crop(
+            (
+                min(self.start_x, end_x),
+                min(self.start_y, end_y),
+                max(self.start_x, end_x),
+                max(self.start_y, end_y),
+            )
+        )
+
+    def confirm_crop(self) -> None:
+        # You can use self.cropped_image as needed (e.g., save, display, etc.)
+        if self.cropped_image:
+            self.cropped_image.show()
+
+
+if __name__ == "__main__":
+    input_image_path: str = "sample0.png"
+    original_image: Image.Image = Image.open(input_image_path)
+
+    root: Tk = Tk()
+    cropper: ImageCropper = ImageCropper(root, original_image)
+    root.mainloop()
