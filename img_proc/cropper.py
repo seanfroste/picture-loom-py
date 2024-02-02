@@ -8,15 +8,15 @@ from PIL import Image, ImageTk
 class ImageCropper:
     """ImageCropper class for cropping an image"""
 
-    def __init__(self, root: Tk, image: Image.Image) -> None:
-        self.root: Tk = root
+    def __init__(self, tk_root: Tk, image: Image.Image) -> None:
+        self.root: Tk = tk_root
         self.root.title("Image Cropper")
 
         self.image: Image.Image = image
         self.tk_image = ImageTk.PhotoImage(self.image)
 
         self.canvas: Canvas = Canvas(
-            root, width=self.image.width, height=self.image.height
+            tk_root, width=self.image.width, height=self.image.height
         )
         self.canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
         self.canvas.pack()
@@ -31,7 +31,7 @@ class ImageCropper:
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
 
         self.confirm_button: Button = Button(
-            root, text="Confirm", command=self.confirm_crop
+            tk_root, text="Confirm", command=self.confirm_crop
         )
         self.confirm_button.pack()
 
