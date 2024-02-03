@@ -1,11 +1,12 @@
 # img_proc/image_cropper.py
-from tkinter import Button, Canvas, Tk
+from tkinter import TOP, Button, Canvas, Label, Tk
 from typing import Optional
 
 from PIL import Image, ImageTk
 
 
 class CropperCanvas:
+
     def __init__(self, tk_root: Tk, image: Image.Image):
         self.canvas: Canvas = Canvas(tk_root, width=image.width, height=image.height)
         self.tk_image = ImageTk.PhotoImage(image)
@@ -27,9 +28,7 @@ class CropperCanvas:
         )
 
 
-class ImageCropper:
-    """ImageCropper class for cropping an image"""
-
+class ImageCropperUI:
     def __init__(self, tk_root: Tk, image: Image.Image) -> None:
         self.root: Tk = tk_root
         self.root.title("Image Cropper")
@@ -41,11 +40,21 @@ class ImageCropper:
         self.canvas_handler.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas_handler.canvas.bind("<ButtonRelease-1>", self.on_release)
 
-        self.confirm_button: Button = Button(
-            tk_root, text="Confirm", command=self.confirm_crop
+        self.confirm_preview_button: Button = Button(
+            tk_root, text="Confirm Preview", command=self.confirm_preview
         )
-        self.confirm_button.pack()
+        self.confirm_preview_button.pack(side=TOP)
+
+        self.confirm_crop_button: Button = Button(
+            tk_root, text="Confirm Crop", command=self.confirm_crop
+        )
+        self.confirm_crop_button.pack(side=TOP)
+        self.confirm_crop_button["state"] = "disabled"
+
         self.cropped_image: Optional[Image.Image] = None
+        self.preview_tk_image: Optional[ImageTk.PhotoImage] = None
+
+        self.preview_label: Optional[Label] = None
 
     def on_press(self, event) -> None:
         x, y = self.canvas_handler.canvas.canvasx(
@@ -73,8 +82,14 @@ class ImageCropper:
             else self.canvas_handler.start_y - side_length
         )
 
-        self.canvas_handler.update_rectangle(
-            self.canvas_handler.start_x, self.canvas_handler.start_y, end_x, end_y
+        if self.canvas_handler.rect_id:
+            self.canvas_handler.canvas.delete(self.canvas_handler.rect_id)
+        self.canvas_handler.rect_id = self.canvas_handler.canvas.create_rectangle(
+            self.canvas_handler.start_x,
+            self.canvas_handler.start_y,
+            end_x,
+            end_y,
+            outline="green",
         )
 
     def on_release(self, event) -> None:
@@ -105,10 +120,28 @@ class ImageCropper:
             )
         )
 
+        # Enable the "Confirm Crop" button for finalizing the crop
+        self.confirm_crop_button["state"] = "normal"
+
+    def confirm_preview(self) -> None:
+        # Display the preview label with the cropped image
+        if self.cropped_image:
+            self.preview_tk_image = ImageTk.PhotoImage(self.cropped_image)
+            if self.preview_label:
+                self.preview_label.destroy()
+            self.preview_label = Label(
+                self.root, image=self.preview_tk_image, padx=10, pady=10
+            )
+            self.preview_label.pack()
+
+            # Enable the "Confirm Crop" button after previewing
+            self.confirm_crop_button["state"] = "normal"
+
     def confirm_crop(self) -> None:
         # You can use self.cropped_image as needed (e.g., save, display, etc.)
         if self.cropped_image:
             self.cropped_image.show()
+            self.root.destroy()
 
 
 if __name__ == "__main__":
@@ -116,5 +149,5 @@ if __name__ == "__main__":
     original_image: Image.Image = Image.open(input_image_path)
 
     root: Tk = Tk()
-    cropper: ImageCropper = ImageCropper(root, original_image)
+    cropper_ui: ImageCropperUI = ImageCropperUI(root, original_image)
     root.mainloop()
