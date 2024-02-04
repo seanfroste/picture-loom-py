@@ -11,7 +11,7 @@ from tkinter import Tk, filedialog
 from typing import Optional
 
 
-def select() -> Optional[Path]:
+def select(tk_root: Tk) -> Optional[Path]:
     """Select an image to be used as the input image for the model
 
     This function is refactored to a functional programming style, avoiding side-effects
@@ -21,15 +21,15 @@ def select() -> Optional[Path]:
         Optional[Path]: The path to the selected image or None if no image is selected
     """
 
-    def create_blank_root() -> Tk:
-        """Create a root window
+    # def create_blank_root() -> Tk:
+    #     """Create a root window
 
-        Returns:
-            Tk: The root window
-        """
-        root = Tk()
-        root.withdraw()
-        return root
+    #     Returns:
+    #         Tk: The root window
+    #     """
+    #     root = Tk()
+    #     root.withdraw()
+    #     return root
 
     def get_file_path(root: Tk) -> Optional[str]:
         """Get the path to a file
@@ -48,12 +48,12 @@ def select() -> Optional[Path]:
             initialdir=".",
         )
 
-    root = create_blank_root()
-    file_path = get_file_path(root)
+    # root = create_blank_root()
+    file_path = get_file_path(tk_root)
 
     if not file_path:
         logging.info("No image selected")
         return None
 
-    logging.debug(file_path)
+    logging.debug("Selected image: %s", file_path)
     return Path(file_path)
