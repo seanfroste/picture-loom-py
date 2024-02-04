@@ -31,29 +31,36 @@ def select(tk_root: Tk) -> Optional[Path]:
     #     root.withdraw()
     #     return root
 
-    def get_file_path(root: Tk) -> Optional[str]:
-        """Get the path to a file
+    # def get_file_path(root: Tk) -> Optional[str]:
+    #     """Get the path to a file
 
-        Args:
-            root (Tk): The root window
+    #     Args:
+    #         root (Tk): The root window
 
-        Returns:
-            Optional[str]: The path to the selected file or None if no file is selected
-        """
-        return filedialog.askopenfilename(
-            parent=root,
-            filetypes=[("Image files", "*.jpg *.jpeg *.png *.gif *.bmp")],
-            defaultextension=".jpg",
-            title="Select an image",
-            initialdir=".",
-        )
+    #     Returns:
+    #         Optional[str]: The path to the selected file or None if no file is selected
+    #     """
+    #     return filedialog.askopenfilename(
+    #         parent=root,
+    #         filetypes=[("Image files", "*.jpg *.jpeg *.png *.gif *.bmp")],
+    #         defaultextension=".jpg",
+    #         title="Select an image",
+    #         initialdir=".",
+    #     )
 
     # root = create_blank_root()
-    file_path = get_file_path(tk_root)
+
+    file_path = filedialog.askopenfilename(
+        parent=tk_root,
+        filetypes=[("Image files", "*.jpg *.jpeg *.png *.gif *.bmp")],
+        defaultextension=".jpg",
+        title="Select an image",
+        initialdir=".",
+    )
 
     if not file_path:
         logging.info("No image selected")
         return None
 
     logging.debug("Selected image: %s", file_path)
-    return Path(file_path)
+    return Path(file_path).resolve()
