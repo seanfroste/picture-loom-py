@@ -7,8 +7,8 @@ from tkinter import Tk
 
 from PIL import Image
 
-import img_select
 from img_proc import cropper
+from img_selector import image_select
 
 
 def main() -> None:
@@ -18,7 +18,7 @@ def main() -> None:
     """
     root = Tk()
     logging.basicConfig(level=logging.DEBUG)
-    input_image_path = img_select.select(root)
+    input_image_path = image_select.select(root)
 
     cropped_img: Image.Image
 
