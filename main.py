@@ -2,6 +2,7 @@
 Main program
 """
 
+import argparse
 import logging
 from tkinter import Tk
 
@@ -18,26 +19,48 @@ def main() -> None:
     """
     root = Tk()
     logging.basicConfig(level=logging.DEBUG)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--crop", action=argparse.BooleanOptionalAction, default=True)
+    args = parser.parse_args()
+
     input_image_path = image_select.select(root)
 
     cropped_img: Image.Image
 
     if input_image_path and input_image_path.is_file():
         with Image.open(input_image_path) as img:
-            logging.debug("Image size: %dx%d", img.width, img.height)
+            logging.info("Original Image size: %dx%d", img.width, img.height)
 
-            img_cropper = cropper.ImageCropperUI(root, img)
+            if args.crop:
+                img_cropper = cropper.ImageCropperUI(root, img)
 
-            root.mainloop()
+                root.mainloop()
 
-            logging.debug("crop UI initialized")
+                logging.debug("crop UI initialized")
 
-            if img_cropper.cropped_image:
-                cropped_img = img_cropper.cropped_image
-                logging.debug(type(cropped_img))
-                logging.info("The image has been cropped")
+                if img_cropper.cropped_image:
+                    cropped_img = img_cropper.cropped_image
+
+                    logging.debug(type(cropped_img))
+                    logging.info(
+                        "Cropped image is of dimensions %dx%d",
+                        cropped_img.width,
+                        cropped_img.height,
+                    )
+                else:
+                    logging.debug("Cropped image is None")
+
             else:
-                logging.debug("Cropped image is None")
+                min_dim = min(img.width, img.height)
+                cropped_img = img.crop((0, 0, min_dim, min_dim))
+
+                logging.info("Default cropping applied")
+                logging.info(
+                    "Cropped image is of dimensions %dx%d",
+                    cropped_img.width,
+                    cropped_img.height,
+                )
+                cropped_img.show()
 
 
 if __name__ == "__main__":
