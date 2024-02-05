@@ -8,6 +8,8 @@ An algorithmic generator for making string art out of digital images
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Usage](#usage)
+    - [Default](#default)
+    - [`--no-crop`](#--no-crop)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -49,10 +51,21 @@ An algorithmic generator for making string art out of digital images
 
 ## Usage
 
-run the project by running
+### Default
+
+Run main.py to initialize the program
 
 ```sh
-python app.py
+python main.py
+```
+
+### `--no-crop`
+
+The `--no-crop` flag applies a default 1:1 crop to the image, starting at the top left and of size that is the minimum of the image's width and height
+
+```sh
+python main.py --no-crop
+
 ```
 
 ## Contributing
