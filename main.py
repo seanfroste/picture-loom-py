@@ -8,7 +8,7 @@ from tkinter import Tk
 
 from PIL import Image
 
-from img_proc import cropper
+from img_proc import cropper, grayscaler
 from img_selector import image_select
 
 
@@ -25,7 +25,8 @@ def main() -> None:
 
     input_image_path = image_select.select(root)
 
-    cropped_img: Image.Image
+    cropped_img: Image.Image = Image.new("RGB", (100, 100), color="white")
+    gray_image: Image.Image = Image.new("RGB", (100, 100), color="white")
 
     if input_image_path and input_image_path.is_file():
         with Image.open(input_image_path) as img:
@@ -60,7 +61,12 @@ def main() -> None:
                     cropped_img.width,
                     cropped_img.height,
                 )
-                cropped_img.show()
+
+            # cropped_img.show()
+            gray_image = grayscaler.grayscale_img(cropped_img)
+
+            logging.debug("Image has been grayscaled")
+            gray_image.show()
 
 
 if __name__ == "__main__":

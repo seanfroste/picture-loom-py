@@ -140,7 +140,7 @@ class ImageCropperUI:
     def confirm_crop(self) -> None:
         # You can use self.cropped_image as needed (e.g., save, display, etc.)
         if self.cropped_image:
-            self.cropped_image.show()
+            # self.cropped_image.show()
             self.root.destroy()
 
 
