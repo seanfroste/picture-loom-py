@@ -8,7 +8,7 @@ from tkinter import Tk
 
 from PIL import Image
 
-from img_proc import cropper, grayscaler
+from img_proc import cropper, grayscaler, round
 from img_selector import image_select
 
 
@@ -56,7 +56,7 @@ def main() -> None:
                 cropped_img = img.crop((0, 0, min_dim, min_dim))
 
                 logging.info("Default cropping applied")
-                logging.info(
+                logging.debug(
                     "Cropped image is of dimensions %dx%d",
                     cropped_img.width,
                     cropped_img.height,
@@ -65,8 +65,13 @@ def main() -> None:
             # cropped_img.show()
             gray_image = grayscaler.grayscale_img(cropped_img)
 
-            logging.debug("Image has been grayscaled")
-            gray_image.show()
+            logging.info("Image has been grayscaled")
+            # gray_image.show()
+
+            roundy = round.apply_round_mask(gray_image)
+
+            logging.info("Image has been rounded out")
+            roundy.show()
 
 
 if __name__ == "__main__":
