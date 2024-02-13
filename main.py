@@ -27,6 +27,7 @@ def main() -> None:
 
     cropped_img: Image.Image = Image.new("RGB", (100, 100), color="white")
     gray_image: Image.Image = Image.new("RGB", (100, 100), color="white")
+    round_image: Image.Image = Image.new("RGB", (100, 100), color="white")
 
     if input_image_path and input_image_path.is_file():
         with Image.open(input_image_path) as img:
@@ -68,10 +69,10 @@ def main() -> None:
             logging.info("Image has been grayscaled")
             # gray_image.show()
 
-            roundy = round_mask.apply(gray_image)
+            round_image = round_mask.apply(gray_image)
 
             logging.info("Image has been rounded out")
-            roundy.show()
+            round_image.show()
 
 
 if __name__ == "__main__":
