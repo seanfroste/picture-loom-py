@@ -8,7 +8,7 @@ from tkinter import Tk
 
 from PIL import Image
 
-from img_proc import cropper, grayscaler, round
+from img_proc import cropper, grayscaler, round_mask
 from img_selector import image_select
 
 
@@ -68,7 +68,7 @@ def main() -> None:
             logging.info("Image has been grayscaled")
             # gray_image.show()
 
-            roundy = round.apply_round_mask(gray_image)
+            roundy = round_mask.apply(gray_image)
 
             logging.info("Image has been rounded out")
             roundy.show()
