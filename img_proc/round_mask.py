@@ -1,7 +1,19 @@
+"""Module for applying a round mask to an image"""
+
 from PIL import Image, ImageDraw
 
 
-def apply_round_mask(input_image: Image.Image) -> Image.Image:
+def apply(input_image: Image.Image) -> Image.Image:
+    """
+    Apply an ellipse mask to the input image and return the result.
+
+    Args:
+    input_image (Image.Image): The input image to be masked.
+
+    Returns:
+    Image.Image: The resulting masked image.
+    """
+    # Get the size of the input image
     image_size = input_image.size
 
     # Create a new blank RGBA image with transparent background
@@ -21,5 +33,5 @@ def apply_round_mask(input_image: Image.Image) -> Image.Image:
 if __name__ == "__main__":
     with Image.open("sample0.png") as img:
         img = img.crop((0, 0, min(img.size), min(img.size)))
-        roundy = apply_round_mask(img)
+        roundy = apply(img)
         roundy.show()
