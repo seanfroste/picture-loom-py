@@ -8,7 +8,7 @@ from tkinter import Tk
 
 from PIL import Image
 
-from img_proc import cropper, grayscaler, round_mask
+from img_proc import cropper, grayscaler, resizer, round_mask
 from img_selector import image_select
 
 
@@ -21,6 +21,7 @@ def main() -> None:
     logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
     parser.add_argument("--crop", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--resize", type=int, default=resizer.RESIZE_DIM)
     args = parser.parse_args()
 
     input_image_path = image_select.select(root)
@@ -28,6 +29,7 @@ def main() -> None:
     cropped_img: Image.Image = Image.new("RGB", (100, 100), color="white")
     gray_image: Image.Image = Image.new("RGB", (100, 100), color="white")
     round_image: Image.Image = Image.new("RGB", (100, 100), color="white")
+    resized_image: Image.Image = Image.new("RGB", (100, 100), color="white")
 
     if input_image_path and input_image_path.is_file():
         with Image.open(input_image_path) as img:
@@ -72,7 +74,12 @@ def main() -> None:
             round_image = round_mask.apply(gray_image)
 
             logging.info("Image has been rounded out")
-            round_image.show()
+            # round_image.show()
+
+            resized_image = resizer.resize_img(round_image, args.resize)
+
+            logging.info("Image has been resized")
+            resized_image.show()
 
 
 if __name__ == "__main__":
