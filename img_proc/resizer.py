@@ -2,10 +2,12 @@
 
 from PIL import Image
 
+# Constants
 RESIZE_DIM = 512
 
 
 def resize_img(image: Image.Image, size: int) -> Image.Image:
+    # Resize the image to the specified square side length
     return image.resize(
         (size, size),
         resample=(

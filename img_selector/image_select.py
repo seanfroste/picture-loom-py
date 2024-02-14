@@ -21,6 +21,7 @@ def select(tk_root: Tk) -> Optional[Path]:
         Optional[Path]: The path to the selected image or None if no image is selected
     """
 
+    # Open file dialog for image selection
     file_path = filedialog.askopenfilename(
         parent=tk_root,
         filetypes=[("Image files", "*.jpg *.jpeg *.png *.gif *.bmp")],
@@ -29,6 +30,7 @@ def select(tk_root: Tk) -> Optional[Path]:
         initialdir=".",
     )
 
+    # Return None if no image is selected
     if not file_path:
         logging.info("No image selected")
         return None
