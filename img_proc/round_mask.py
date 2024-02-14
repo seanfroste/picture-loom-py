@@ -5,13 +5,10 @@ from PIL import Image, ImageDraw
 
 def apply(input_image: Image.Image) -> Image.Image:
     """
-    Apply an ellipse mask to the input image and return the result.
+    Apply a round mask to an image
 
-    Args:
-    input_image (Image.Image): The input image to be masked.
-
-    Returns:
-    Image.Image: The resulting masked image.
+    :param input_image: image to apply the mask to
+    :return: rounded image with transparent background
     """
     # Get the size of the input image
     image_size = input_image.size
