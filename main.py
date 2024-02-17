@@ -10,6 +10,7 @@ from PIL import Image
 
 from img_proc import cropper, grayscaler, resizer, round_mask
 from img_selector import image_select
+from weaver import loom
 
 
 def main() -> None:
@@ -92,7 +93,9 @@ def main() -> None:
             resized_image = resizer.resize_img(round_image, args.resize)
 
             logging.info("Image has been resized")
-            resized_image.show()
+            # resized_image.show()
+
+            loom.run(resized_image)
 
 
 if __name__ == "__main__":
