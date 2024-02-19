@@ -42,6 +42,10 @@ class LoomGUI:
         # destroy window
         self.root.destroy()
 
+    def get_num_pegs(self) -> int:
+        # Return the value selected by the user
+        return self.num_pegs
+
 
 if __name__ == "__main__":
     root = tk.Tk()
@@ -50,4 +54,5 @@ if __name__ == "__main__":
     loom_gui = LoomGUI(root)
 
     root.mainloop()
-    logging.debug("Number of pegs outside: %d", loom_gui.num_pegs)
+    num_pegs = loom_gui.get_num_pegs()
+    logging.debug("Number of pegs outside: %d", num_pegs)
