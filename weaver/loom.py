@@ -36,14 +36,19 @@ def draw_pegs(image: Image.Image, num_pegs: int) -> Image.Image:
 
     draw = ImageDraw.Draw(image)
     for i in pegs_list:
-        draw.point(
+        draw.ellipse(
             (
                 (
-                    center_x + i[0],
-                    center_y + i[1],
+                    center_x + i[0] - 2,
+                    center_y + i[1] - 2,
+                ),
+                (
+                    center_x + i[0] + 2,
+                    center_y + i[1] + 2,
                 ),
             ),
             fill="black",
+            outline=None,
         )
 
     return image
