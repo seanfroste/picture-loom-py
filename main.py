@@ -4,13 +4,13 @@ Main program
 
 import argparse
 import logging
-from tkinter import Tk
+import tkinter as tk
 
 from PIL import Image
 
 from img_proc import cropper, grayscaler, resizer, round_mask
 from img_selector import image_select
-from weaver import loom
+from weaver import gui, loom
 
 
 def main() -> None:
@@ -19,7 +19,7 @@ def main() -> None:
     No parameters. Returns None.
     """
     # Create root window for Tkinter
-    root = Tk()
+    root = tk.Tk()
 
     # Set up logging
     logging.basicConfig(level=logging.DEBUG)
@@ -95,7 +95,14 @@ def main() -> None:
             logging.info("Image has been resized")
             # resized_image.show()
 
-            loom.run(resized_image)
+            gui_root = tk.Tk()
+            loom_gui = gui.LoomGUI(gui_root)
+            gui_root.mainloop()
+
+            num_pegs = loom_gui.get_num_pegs()
+            logging.debug("Number of pegs: %d", num_pegs)
+
+            loom.run(resized_image, num_pegs)
 
 
 if __name__ == "__main__":
