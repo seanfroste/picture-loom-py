@@ -3,6 +3,7 @@
 # weaver/loom.py
 
 import atexit
+import math
 import os
 import turtle
 
@@ -17,7 +18,38 @@ def make_thumbnail(image: Image.Image, factor: int) -> Image.Image:
     return thn
 
 
-def make_board(image: Image.Image) -> Image.Image:
+def calculate_pegs(radius: int, num_pegs: int) -> list[tuple[int, int]]:
+    return [
+        (
+            int(radius * math.cos(i * 2 * math.pi / num_pegs)),
+            int(radius * math.sin(i * 2 * math.pi / num_pegs)),
+        )
+        for i in range(num_pegs)
+    ]
+
+
+def draw_pegs(image: Image.Image, num_pegs: int) -> Image.Image:
+    pegs_list = calculate_pegs(image.size[0] // 2, num_pegs)
+
+    center_x = image.size[0] // 2
+    center_y = image.size[1] // 2
+
+    draw = ImageDraw.Draw(image)
+    for i in pegs_list:
+        draw.point(
+            (
+                (
+                    center_x + i[0],
+                    center_y + i[1],
+                ),
+            ),
+            fill="black",
+        )
+
+    return image
+
+
+def make_board(image: Image.Image, num_pegs: int) -> Image.Image:
     thn = make_thumbnail(image, 8)
 
     # create base background
@@ -34,6 +66,8 @@ def make_board(image: Image.Image) -> Image.Image:
     # base.paste(board, (0, 0))
     base.paste(thn, (0, 0))
 
+    base = draw_pegs(base, num_pegs)
+
     return base
 
 
@@ -43,21 +77,13 @@ def delete_temp():
         os.remove(temp_file)
 
 
-def run(image: Image.Image) -> None:
+def run(image: Image.Image, num_pegs: int) -> None:
     shuttle = turtle.Turtle()
     shuttle.penup()
     shuttle.hideturtle()
     turtle.Screen().setup(image.size[0] + 10, image.size[1] + 10)
 
-    # create thumbnail
-    thn = image.copy()
-    thn.thumbnail(
-        (image.size[0] // 8, image.size[1] // 8),
-        Image.Resampling.BOX,
-    )
-
-    # create background
-    base = make_board(image)
+    base = make_board(image, num_pegs)
 
     # save background temporarily for use with turtle bgpic
     base.save("thumbnail.gif", "GIF")
@@ -79,4 +105,4 @@ if __name__ == "__main__":
     with Image.open("sample0.png") as img:
         img = img.crop((0, 0, min(img.size), min(img.size)))
         img = img.resize((512, 512), Image.Resampling.BOX)
-        run(img)
+        run(img, 360)
