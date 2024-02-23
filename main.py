@@ -102,7 +102,7 @@ def main() -> None:
             num_pegs = loom_gui.get_num_pegs()
             logging.debug("Number of pegs: %d", num_pegs)
 
-            loom.run(resized_image, num_pegs)
+            loom.weave(resized_image, num_pegs)
 
 
 if __name__ == "__main__":
