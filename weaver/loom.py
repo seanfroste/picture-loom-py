@@ -2,12 +2,14 @@
 
 # weaver/loom.py
 
-import atexit
+# import atexit
+# import turtle
+# import os
+import logging
 import math
-import os
-import turtle
+import tkinter as tk
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageTk
 
 
 def make_thumbnail(image: Image.Image, factor: int) -> Image.Image:
@@ -76,38 +78,37 @@ def make_board(image: Image.Image, num_pegs: int) -> Image.Image:
     return base
 
 
-def delete_temp():
-    temp_file = "thumbnail.gif"
-    if os.path.exists(temp_file):
-        os.remove(temp_file)
+# def delete_temp():
+#     temp_file = "thumbnail.gif"
+#     if os.path.exists(temp_file):
+#         os.remove(temp_file)
 
 
-def run(image: Image.Image, num_pegs: int) -> None:
-    shuttle = turtle.Turtle()
-    shuttle.penup()
-    shuttle.hideturtle()
-    turtle.Screen().setup(image.size[0] + 10, image.size[1] + 10)
+def weave(image: Image.Image, num_pegs: int) -> None:
+    root = tk.Tk()
+    canvas = tk.Canvas(master=root, width=image.size[0], height=image.size[1])
 
     base = make_board(image, num_pegs)
 
-    # save background temporarily for use with turtle bgpic
-    base.save("thumbnail.gif", "GIF")
-    atexit.register(delete_temp)
+    # # save background temporarily for use with turtle bgpic
+    # base.save("thumbnail.gif", "GIF")
+    # atexit.register(delete_temp)
 
-    shuttle.screen.screensize(
-        canvwidth=image.size[0],
-        canvheight=image.size[1],
-        bg="grey",
-    )
+    # # set background
+    # shuttle.screen.bgpic("thumbnail.gif")
 
-    # set background
-    shuttle.screen.bgpic("thumbnail.gif")
+    backdrop = ImageTk.PhotoImage(base)
 
-    turtle.done()
+    canvas.create_image(0, 0, anchor=tk.NW, image=backdrop)
+    canvas.pack()
+
+    # turtle.done()
+    root.mainloop()
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     with Image.open("sample0.png") as img:
         img = img.crop((0, 0, min(img.size), min(img.size)))
-        img = img.resize((512, 512), Image.Resampling.BOX)
-        run(img, 360)
+        img = img.resize((512, 512), Image.Resampling.BOX).convert("L")
+        weave(img, 360)
