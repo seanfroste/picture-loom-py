@@ -1,22 +1,21 @@
 import logging
-from typing import Optional
-
 import tkinter as tk
-from PIL import Image
 
-# Use rich_click for nicer Click output; it's a drop-in wrapper around Click
 import rich_click as click
+from PIL import Image
 
 from .img_proc import cropper, grayscaler, resizer, round_mask
 from .img_selector import image_select
-from .weaver import gui, loom
 from .logging_config import init_logging
+from .weaver import gui, loom
 
 
 @click.command()
 @click.option("--crop/--no-crop", default=True, help="Enable or disable cropping")
 @click.option("--resize", default=resizer.RESIZE_DIM, type=int, help="Resize dimension")
-@click.option("-v", "--verbose", count=True, help="Increase verbosity (use -v for DEBUG)")
+@click.option(
+    "-v", "--verbose", count=True, help="Increase verbosity (use -v for DEBUG)"
+)
 def main(crop: bool, resize: int, verbose: int) -> None:
     """Main CLI entrypoint for picture-loom."""
     # Initialize logging as early as possible

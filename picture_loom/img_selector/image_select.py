@@ -8,7 +8,6 @@ further processing.
 import logging
 from pathlib import Path
 from tkinter import Tk, filedialog
-from typing import Optional
 
 
 def select(tk_root: Tk) -> Path | None:

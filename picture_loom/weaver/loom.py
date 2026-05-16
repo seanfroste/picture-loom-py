@@ -5,7 +5,6 @@
 # import atexit
 # import turtle
 # import os
-import logging
 import math
 import tkinter as tk
 

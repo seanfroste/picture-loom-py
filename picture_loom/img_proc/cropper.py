@@ -1,7 +1,7 @@
 # img_proc/image_cropper.py
 import math
-from tkinter import TOP, Button, Canvas, Label, Tk
 import tkinter
+from tkinter import TOP, Button, Canvas, Label, Tk
 from typing import cast
 
 from PIL import Image, ImageTk
