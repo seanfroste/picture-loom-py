@@ -11,16 +11,16 @@ from tkinter import Tk, filedialog
 from typing import Optional
 
 
-def select(tk_root: Tk) -> Optional[Path]:
-    """Select an image to be used as the input image for the model
+def select(tk_root: Tk) -> Path | None:
+    """
+    Opens a file dialog for the user to select an image file. The function returns the path of the selected image or None if no image is selected.
 
-    This function is refactored to a functional programming style, avoiding side-effects
-    and relying on pure functions.
+    Args:
+        tk_root (Tk): The root Tkinter window to which the file dialog will be attached.
 
     Returns:
-        Optional[Path]: The path to the selected image or None if no image is selected
+        Path | None: The resolved path of the selected image file, or None if no file was selected.
     """
-
     # Open file dialog for image selection
     file_path = filedialog.askopenfilename(
         parent=tk_root,

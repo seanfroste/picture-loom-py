@@ -17,37 +17,36 @@ An algorithmic generator for making string art out of digital images
 
 1. Clone the repository:
 
-    ```sh
-    git clone https://github.com/seanfroste/picture-loom-py.git
-    ```
+   ```sh
+   git clone https://github.com/seanfroste/picture-loom-py.git
+   ```
 
 2. Navigate to the project directory:
 
-    ```sh
-    cd picture-loom-py
-    ```
+   ```sh
+   cd picture-loom-py
+   ```
 
 3. (Optional) Create and activate a virtual environment:
+   - On Linux/Mac
 
-    - On Linux/Mac
+     ```sh
+     python -m venv venv
+     source venv/bin/activate
+     ```
 
-        ```sh
-        python -m venv venv
-        source venv/bin/activate
-        ```
+   - On Windows
 
-    - On Windows
-
-        ```powershell
-        python.exe -m venv venv
-        .\venv\Scripts\activate
-        ```
+     ```powershell
+     python.exe -m venv venv
+     .\venv\Scripts\activate
+     ```
 
 4. Install dependencies:
 
-    ```sh
-    pip install -r requirements.txt
-    ```
+   ```sh
+   pip install -r requirements.txt
+   ```
 
 ## Usage
 

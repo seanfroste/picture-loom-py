@@ -5,10 +5,13 @@ from PIL import Image
 
 def grayscale_img(image: Image.Image) -> Image.Image:
     """
-    Convert an image to grayscale
+    Converts the input image to grayscale using the "L" mode in PIL.
 
-    :param image: The image to convert
-    :return: The grayscaled image
+    Args:
+        image (Image.Image): The input image to be converted to grayscale.
+
+    Returns:
+        Image.Image: A new image in grayscale mode.
     """
     return image.convert("L")
 

@@ -116,7 +116,7 @@ def weave(image: Image.Image, num_pegs: int) -> None:
 
     backdrop = ImageTk.PhotoImage(base)
 
-    canvas.create_image(0, 0, anchor=tk.NW, image=backdrop)
+    canvas.create_image(0, 0, anchor=tk.NW, image=backdrop)  # type: ignore
     canvas.pack()
 
     # turtle.done()

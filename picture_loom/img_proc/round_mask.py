@@ -5,10 +5,13 @@ from PIL import Image, ImageDraw
 
 def apply(input_image: Image.Image) -> Image.Image:
     """
-    Apply a round mask to an image
+    Applies a round mask to the input image, resulting in a circular crop of the original image.
 
-    :param input_image: image to apply the mask to
-    :return: rounded image with transparent background
+    Args:
+        input_image (Image.Image): The input image to which the round mask will be applied.
+
+    Returns:
+        Image.Image: A new image with a round mask applied, where the area outside the circular region is transparent.
     """
     # Get the size of the input image
     image_size = input_image.size
