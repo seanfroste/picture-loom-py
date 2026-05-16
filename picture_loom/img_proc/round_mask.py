@@ -29,6 +29,6 @@ def apply(input_image: Image.Image) -> Image.Image:
 
 if __name__ == "__main__":
     with Image.open("sample0.png") as img:
-        img = img.crop((0, 0, min(img.size), min(img.size)))
-        roundy = apply(img)
+        cropped = img.crop((0, 0, min(img.size), min(img.size)))
+        roundy = apply(cropped)
         roundy.show()

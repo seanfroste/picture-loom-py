@@ -57,6 +57,16 @@ def draw_pegs(image: Image.Image, num_pegs: int) -> Image.Image:
 
 
 def make_board(image: Image.Image, num_pegs: int) -> Image.Image:
+    """
+    Creates a board with the specified image and number of pegs.
+
+    Args:
+        image (Image.Image): The image to be used for reference
+        num_pegs (int): The number of pegs to be drawn on the board
+
+    Returns:
+        Image.Image: The generated board with pegs as a PIL Image object
+    """
     thn = make_thumbnail(image, 8)
 
     # create base background
@@ -85,6 +95,13 @@ def make_board(image: Image.Image, num_pegs: int) -> Image.Image:
 
 
 def weave(image: Image.Image, num_pegs: int) -> None:
+    """
+    Initializes the main drawing surface and draws the board with pegs on it.
+
+    Args:
+        image (Image.Image): The image to be used for reference
+        num_pegs (int): The number of pegs to be drawn on the board
+    """
     root = tk.Tk()
     canvas = tk.Canvas(master=root, width=image.size[0], height=image.size[1])
 
@@ -109,6 +126,6 @@ def weave(image: Image.Image, num_pegs: int) -> None:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     with Image.open("sample0.png") as img:
-        img = img.crop((0, 0, min(img.size), min(img.size)))
-        img = img.resize((512, 512), Image.Resampling.BOX).convert("L")
-        weave(img, 360)
+        cropped = img.crop((0, 0, min(img.size), min(img.size)))
+        resized = cropped.resize((512, 512), Image.Resampling.BOX).convert("L")
+        weave(resized, 360)

@@ -1,7 +1,7 @@
 """Module for selecting an input image using a graphical file dialog.
 
 This module provides functionality to open a file dialog window and allow the
-user to select an image file. The selected image path is then returned for 
+user to select an image file. The selected image path is then returned for
 further processing.
 """
 
