@@ -5,7 +5,6 @@
 # import atexit
 # import turtle
 # import os
-import logging
 import math
 import tkinter as tk
 
@@ -124,7 +123,7 @@ def weave(image: Image.Image, num_pegs: int) -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    # When run as a script, avoid reconfiguring logging unconditionally.
     with Image.open("sample0.png") as img:
         cropped = img.crop((0, 0, min(img.size), min(img.size)))
         resized = cropped.resize((512, 512), Image.Resampling.BOX).convert("L")

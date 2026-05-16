@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Convert images into circular weaving loom patterns"
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = ["pillow>=10.2.0"]
+dependencies = [
+    "click>=8.1.8",
+    "pillow>=10.2.0",
+    "rich>=15.0.0",
+    "rich-click>=1.9.7",
+]
 
 [project.scripts]
 picture-loom = "picture_loom.main:main"

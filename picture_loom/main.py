@@ -1,30 +1,28 @@
-import argparse
 import logging
 import tkinter as tk
 
+import rich_click as click
 from PIL import Image
 
 from .img_proc import cropper, grayscaler, resizer, round_mask
 from .img_selector import image_select
+from .logging_config import init_logging
 from .weaver import gui, loom
 
 
-def main() -> None:
-    """
-    Main function
-    No parameters. Returns None.
-    """
+@click.command()
+@click.option("--crop/--no-crop", default=True, help="Enable or disable cropping")
+@click.option("--resize", default=resizer.RESIZE_DIM, type=int, help="Resize dimension")
+@click.option(
+    "-v", "--verbose", count=True, help="Increase verbosity (use -v for DEBUG)"
+)
+def main(crop: bool, resize: int, verbose: int) -> None:
+    """Main CLI entrypoint for picture-loom."""
+    # Initialize logging as early as possible
+    init_logging(verbose)
+
     # Create root window for Tkinter
     root = tk.Tk()
-
-    # Set up logging
-    logging.basicConfig(level=logging.DEBUG)
-
-    # Parse command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--crop", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--resize", type=int, default=resizer.RESIZE_DIM)
-    args = parser.parse_args()
 
     # Select an image using a file dialog
     input_image_path = image_select.select(root)
@@ -41,7 +39,7 @@ def main() -> None:
             logging.info("Original Image size: %dx%d", img.width, img.height)
 
             # Check if cropping is required
-            if args.crop:
+            if crop:
                 img_cropper = cropper.ImageCropperUI(root, img)
 
                 # Run cropping UI
@@ -75,23 +73,18 @@ def main() -> None:
 
                 root.destroy()
 
-            # cropped_img.show()
-
             # grayscale the result
             gray_image = grayscaler.grayscale_img(cropped_img)
 
             logging.info("Image has been grayscaled")
-            # gray_image.show()
 
             round_image = round_mask.apply(gray_image)
 
             logging.info("Image has been rounded out")
-            # round_image.show()
 
-            resized_image = resizer.resize_img(round_image, args.resize)
+            resized_image = resizer.resize_img(round_image, resize)
 
             logging.info("Image has been resized")
-            # resized_image.show()
 
             gui_root = tk.Tk()
             loom_gui = gui.LoomGUI(gui_root)
