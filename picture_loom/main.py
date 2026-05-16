@@ -1,16 +1,12 @@
-"""
-Main program
-"""
-
 import argparse
 import logging
 import tkinter as tk
 
 from PIL import Image
 
-from img_proc import cropper, grayscaler, resizer, round_mask
-from img_selector import image_select
-from weaver import gui, loom
+from .img_proc import cropper, grayscaler, resizer, round_mask
+from .img_selector import image_select
+from .weaver import gui, loom
 
 
 def main() -> None:
@@ -77,6 +73,8 @@ def main() -> None:
                     cropped_img.height,
                 )
 
+                root.destroy()
+
             # cropped_img.show()
 
             # grayscale the result
@@ -103,7 +101,3 @@ def main() -> None:
             logging.debug("Number of pegs: %d", num_pegs)
 
             loom.weave(resized_image, num_pegs)
-
-
-if __name__ == "__main__":
-    main()

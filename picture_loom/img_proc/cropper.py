@@ -1,6 +1,8 @@
 # img_proc/image_cropper.py
+import math
 from tkinter import TOP, Button, Canvas, Label, Tk
-from typing import Optional
+import tkinter
+from typing import cast
 
 from PIL import Image, ImageTk
 
@@ -11,32 +13,41 @@ class CropperCanvas:
     """
 
     def __init__(self, tk_root: Tk, image: Image.Image):
+        """
+        Initializes the CropperCanvas.
+
+        Args:
+            tk_root (Tk): The root Tkinter window.
+            image (Image.Image): The image to be displayed on the canvas.
+        """
         self.canvas: Canvas = Canvas(tk_root, width=image.width, height=image.height)
         self.tk_image = ImageTk.PhotoImage(image)
-        self.canvas.create_image(0, 0, anchor="nw", image=self.tk_image)
+        self.canvas.create_image(0, 0, anchor="nw", image=self.tk_image)  # type: ignore
         self.canvas.pack()
         self.start_x: int = 0
         self.start_y: int = 0
-        self.rect_id: Optional[int] = None
+        self.rect_id: int | None = None
 
-    def set_starting_point(self, x: int, y: int):
+    def set_starting_point(self, x: int | float, y: int | float):
         """
         Sets the starting point of the rectangle
 
-        :param x: x coordinate of the starting point
-        :param y: y coordinate of the starting point
+        Args:
+            x (int | float): x coordinate of the starting point
+            y (int | float): y coordinate of the starting point
         """
-        self.start_x = x
-        self.start_y = y
+        self.start_x = int(x)
+        self.start_y = int(y)
 
     def update_rectangle(self, start_x: int, start_y: int, end_x: int, end_y: int):
         """
-        Updates the rectangle based on the new coordinates
+        Updates the rectangle based on the new coordinates, as long as the mouse is held down
 
-        :param start_x: x coordinate of the starting point
-        :param start_y: y coordinate of the starting point
-        :param end_x: x coordinate of the ending point
-        :param end_y: y coordinate of the ending point
+        Args:
+            start_x (int): x coordinate of the starting point
+            start_y (int): y coordinate of the starting point
+            end_x (int): x coordinate of the current mouse position
+            end_y (int): y coordinate of the current mouse position
         """
         if self.rect_id:
             self.canvas.delete(self.rect_id)
@@ -65,6 +76,13 @@ class ImageCropperUI:
     """
 
     def __init__(self, tk_root: Tk, image: Image.Image) -> None:
+        """
+        Initializes the ImageCropperUI.
+
+        Args:
+            tk_root (Tk): The root Tkinter window.
+            image (Image.Image): The image to be cropped.
+        """
         # Set the root window and title
         self.root: Tk = tk_root
         self.root.title("Image Cropper")
@@ -93,32 +111,32 @@ class ImageCropperUI:
         )
 
         # Initialize variables for cropped image, preview image, and preview label
-        self.cropped_image: Optional[Image.Image] = None
-        self.preview_tk_image: Optional[ImageTk.PhotoImage] = None
-        self.preview_label: Optional[Label] = None
+        self.cropped_image: Image.Image | None = None
+        self.preview_tk_image: ImageTk.PhotoImage | None = None
+        self.preview_label: Label | None = None
 
-    def on_press(self, event) -> None:
+    def on_press(self, event: tkinter.Event) -> None:
         """
-        Sets the starting point of the rectangle
+        Sets the starting point of the cropping shape when the mouse button is pressed
 
-        :param event: mouse click event
+        Args:
+            event (tkinter.Event): mouse press event
         """
-        x, y = self.canvas_handler.canvas.canvasx(
-            event.x
-        ), self.canvas_handler.canvas.canvasy(event.y)
+        x = int(self.canvas_handler.canvas.canvasx(event.x))  # type: ignore
+        y = int(self.canvas_handler.canvas.canvasy(event.y))  # type: ignore
 
         self.canvas_handler.set_starting_point(x, y)
 
-    def on_drag(self, event) -> None:
+    def on_drag(self, event: tkinter.Event) -> None:
         """
-        Updates the rectangle based on the new coordinates, as long as the mouse is held down
+        Updates the cropping shape as the mouse is dragged
 
-        :param event: mouse drag event
+        Args:
+            event (tkinter.Event): mouse drag event
         """
         # set current mouse position
-        cur_x, cur_y = self.canvas_handler.canvas.canvasx(
-            event.x
-        ), self.canvas_handler.canvas.canvasy(event.y)
+        cur_x = cast(int, self.canvas_handler.canvas.canvasx(event.x))  # type: ignore
+        cur_y = cast(int, self.canvas_handler.canvas.canvasy(event.y))  # type: ignore
 
         # side_length = min(
         #     abs(cur_x - self.canvas_handler.start_x),
@@ -146,24 +164,35 @@ class ImageCropperUI:
         #     outline="green",
         # )
 
-        # --------------------------------------------------------------------------------------
-
-        # Update the crop window to be a circle with diametrically opposite points as
-        #   the start and current mouse positions
+        # Changed the crop window to be a circle, with diametrically opposite points as
+        # the start and current mouse positions
         self.canvas_handler.update_rectangle(
-            self.canvas_handler.start_x, self.canvas_handler.start_y, cur_x, cur_y
+            self.canvas_handler.start_x,
+            self.canvas_handler.start_y,
+            cur_x,
+            cur_y,
         )
 
-    def on_release(self, event) -> None:
+    def on_release(self, event: tkinter.Event) -> None:
         """
-        Crops the image based on the square that bounds the cropping circle
+        Crops the image based on the final position of the mouse when the button is released
 
-        :param event: mouse release event
+        Args:
+            event (tkinter.Event): mouse release event
         """
         # assign current mouse position
-        cur_x, cur_y = self.canvas_handler.canvas.canvasx(
-            event.x
-        ), self.canvas_handler.canvas.canvasy(event.y)
+        cur_x = cast(
+            int,
+            self.canvas_handler.canvas.canvasx(  # pyright: ignore[reportUnknownMemberType]
+                event.x
+            ),
+        )
+        cur_y = cast(
+            int,
+            self.canvas_handler.canvas.canvasy(  # pyright: ignore[reportUnknownMemberType]
+                event.y
+            ),
+        )
 
         # old Crop rectangle logic
 
@@ -263,12 +292,14 @@ class ImageCropperUI:
 
         # no but seriously
         # Calculate the center and side length of the bounding box for the circle
-        center_x = (self.canvas_handler.start_x + cur_x) / 2
-        center_y = (self.canvas_handler.start_y + cur_y) / 2
-        side_length = (
-            (cur_x - self.canvas_handler.start_x) ** 2
-            + (cur_y - self.canvas_handler.start_y) ** 2
-        ) ** 0.5 / 2
+        center_x: float = (self.canvas_handler.start_x + cur_x) / 2
+        center_y: float = (self.canvas_handler.start_y + cur_y) / 2
+        side_length: float = (
+            math.sqrt(
+                ((cur_x - self.canvas_handler.start_x) ** 2)
+                + ((cur_y - self.canvas_handler.start_y) ** 2)
+            )
+        ) / 2
 
         # set the coordinates of the bounding box
         start_x = center_x - side_length
@@ -277,14 +308,14 @@ class ImageCropperUI:
         end_y = center_y + side_length
 
         # Crop the original image based on the bounding box
-        self.cropped_image = self.image.crop((start_x, start_y, end_x, end_y))
+        self.cropped_image = self.image.crop((start_x, start_y, end_x, end_y))  # type: ignore
 
         # Enable the "Confirm Crop" button when at least one non empty crop window has been defined
         self.confirm_crop_button["state"] = "normal"
 
     def confirm_preview(self) -> None:
         """
-        Displays the cropped image in the preview label
+        Displays a preview of the cropped image in the UI
         """
         # Display the preview label with the cropped image
         if self.cropped_image:
@@ -305,7 +336,7 @@ class ImageCropperUI:
 
     def confirm_crop(self) -> None:
         """
-        Closes the window
+        Finalizes the cropping process and closes the UI. The cropped image can be accessed via self.cropped_image.
         """
         # You can use self.cropped_image as needed (e.g., save, display, etc.)
         if self.cropped_image:
