@@ -11,9 +11,9 @@ from .weaver import gui, loom
 
 
 @click.command()
-@click.option("--crop/--no-crop", default=True, help="Enable or disable cropping")
-@click.option("--resize", default=resizer.RESIZE_DIM, type=int, help="Resize dimension")
-@click.option(
+@click.option("--crop/--no-crop", default=True, help="Enable or disable cropping")  # type: ignore
+@click.option("--resize", default=resizer.RESIZE_DIM, type=int, help="Resize dimension")  # type: ignore
+@click.option(  # type: ignore
     "-v", "--verbose", count=True, help="Increase verbosity (use -v for DEBUG)"
 )
 def main(crop: bool, resize: int, verbose: int) -> None:
@@ -27,6 +27,15 @@ def main(crop: bool, resize: int, verbose: int) -> None:
     # Select an image using a file dialog
     input_image_path = image_select.select(root)
 
+    if input_image_path is None:
+        root.destroy()
+        return
+
+    if not input_image_path.is_file():
+        logging.warning("Selected path is not a file: %s", input_image_path)
+        root.destroy()
+        return
+
     # Initialize image variables
     cropped_img: Image.Image = Image.new("RGB", (100, 100), color="white")
     gray_image: Image.Image = Image.new("RGB", (100, 100), color="white")
@@ -34,63 +43,62 @@ def main(crop: bool, resize: int, verbose: int) -> None:
     resized_image: Image.Image = Image.new("RGB", (100, 100), color="white")
 
     # Process the image if it exists and is a file
-    if input_image_path and input_image_path.is_file():
-        with Image.open(input_image_path) as img:
-            logging.info("Original Image size: %dx%d", img.width, img.height)
+    with Image.open(input_image_path) as img:
+        logging.info("Original Image size: %dx%d", img.width, img.height)
 
-            # Check if cropping is required
-            if crop:
-                img_cropper = cropper.ImageCropperUI(root, img)
+        # Check if cropping is required
+        if crop:
+            img_cropper = cropper.ImageCropperUI(root, img)
 
-                # Run cropping UI
-                root.mainloop()
+            # Run cropping UI
+            root.mainloop()
 
-                logging.debug("crop UI initialized")
+            logging.debug("crop UI initialized")
 
-                if img_cropper.cropped_image:
-                    cropped_img = img_cropper.cropped_image
+            if img_cropper.cropped_image:
+                cropped_img = img_cropper.cropped_image
 
-                    logging.debug(type(cropped_img))
-                    logging.info(
-                        "Cropped image is of dimensions %dx%d",
-                        cropped_img.width,
-                        cropped_img.height,
-                    )
-                else:
-                    logging.error("Cropped image is None")
-
-            else:
-                # Apply default cropping to the selected image
-                min_dim = min(img.width, img.height)
-                cropped_img = img.crop((0, 0, min_dim, min_dim))
-
-                logging.info("Default cropping applied")
-                logging.debug(
+                logging.debug(type(cropped_img))
+                logging.info(
                     "Cropped image is of dimensions %dx%d",
                     cropped_img.width,
                     cropped_img.height,
                 )
+            else:
+                logging.error("Cropped image is None")
 
-                root.destroy()
+        else:
+            # Apply default cropping to the selected image
+            min_dim = min(img.width, img.height)
+            cropped_img = img.crop((0, 0, min_dim, min_dim))
 
-            # grayscale the result
-            gray_image = grayscaler.grayscale_img(cropped_img)
+            logging.info("Default cropping applied")
+            logging.debug(
+                "Cropped image is of dimensions %dx%d",
+                cropped_img.width,
+                cropped_img.height,
+            )
 
-            logging.info("Image has been grayscaled")
+            root.destroy()
 
-            round_image = round_mask.apply(gray_image)
+        # grayscale the result
+        gray_image = grayscaler.grayscale_img(cropped_img)
 
-            logging.info("Image has been rounded out")
+        logging.info("Image has been grayscaled")
 
-            resized_image = resizer.resize_img(round_image, resize)
+        round_image = round_mask.apply(gray_image)
 
-            logging.info("Image has been resized")
+        logging.info("Image has been rounded out")
 
-            gui_root = tk.Tk()
-            loom_gui = gui.LoomGUI(gui_root)
-            gui_root.mainloop()
+        resized_image = resizer.resize_img(round_image, resize)
 
-            num_pegs = loom_gui.get_num_pegs()
-            logging.debug("Number of pegs: %d", num_pegs)
+        logging.info("Image has been resized")
 
-            loom.weave(resized_image, num_pegs)
+        gui_root = tk.Tk()
+        loom_gui = gui.LoomGUI(gui_root)
+        gui_root.mainloop()
+
+        num_pegs = loom_gui.get_num_pegs()
+        logging.debug("Number of pegs: %d", num_pegs)
+
+        loom.weave(resized_image, num_pegs)
