@@ -3,7 +3,7 @@ name = "picture-loom"
 version = "0.1.0"
 description = "Convert images into circular weaving loom patterns"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.14"
 dependencies = [
     "click>=8.1.8",
     "pillow>=10.2.0",
@@ -19,4 +19,32 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = ["types-pillow>=10.2.0.20240822"]
+dev = [
+    "black>=26.10.1",
+    "flake8-pyproject>=1.2.4",
+    "isort>=9.0.2",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "types-pillow>=10.2.0.20240822",
+    "wemake-python-styleguide>=1.8.1",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py314"]
+
+[tool.isort]
+line_length = 88
+profile = "black"
+py_version = 314
+
+[tool.mypy]
+python_version = "3.14"
+files = ["picture_loom", "tests"]
+check_untyped_defs = true
+warn_unused_configs = true
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "E701"]
+select = ["E4", "E7", "E9", "F", "WPS100", "WPS110"]

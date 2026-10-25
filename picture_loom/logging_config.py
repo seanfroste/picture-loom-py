@@ -17,10 +17,10 @@ def init_logging(verbose: int = 0) -> None:
         root.setLevel(level)
         return
 
-    handler = RichHandler(rich_tracebacks=True)
+    rich_handler = RichHandler(rich_tracebacks=True)
     formatter = logging.Formatter("%(message)s")
-    handler.setFormatter(formatter)
+    rich_handler.setFormatter(formatter)
 
     root.handlers = []
-    root.addHandler(handler)
+    root.addHandler(rich_handler)
     root.setLevel(level)

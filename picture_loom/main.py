@@ -1,7 +1,12 @@
+import hashlib
+import io
 import logging
+import re
 import tkinter as tk
+from pathlib import Path
 
 import rich_click as click
+from click.exceptions import Abort
 from PIL import Image
 
 from .img_proc import cropper, grayscaler, resizer, round_mask
@@ -11,94 +16,168 @@ from .weaver import gui, loom
 
 
 @click.command()
-@click.option("--crop/--no-crop", default=True, help="Enable or disable cropping")  # type: ignore
-@click.option("--resize", default=resizer.RESIZE_DIM, type=int, help="Resize dimension")  # type: ignore
-@click.option(  # type: ignore
+@click.option("--crop/--no-crop", default=True, help="Enable or disable cropping")
+@click.option("--resize", default=512, type=int, help="Resize dimension")
+@click.option(
     "-v", "--verbose", count=True, help="Increase verbosity (use -v for DEBUG)"
 )
-def main(crop: bool, resize: int, verbose: int) -> None:
-    """Main CLI entrypoint for picture-loom."""
-    # Initialize logging as early as possible
+@click.option("--pegs", "peg_count", type=int, default=None, help="Number of pegs")
+@click.option(
+    "--max-lines", default=5000, type=int, help="Maximum number of string lines"
+)
+@click.option("--stroke-alpha", default=60, type=int, help="Stroke alpha (0-255)")
+@click.option("--delay-ms", default=20, type=int, help="Delay between animation steps")
+@click.option("--fast", is_flag=True, default=False, help="Run non-GUI batch mode")
+@click.option(
+    "-i",
+    "--input",
+    "input_path",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+    help="Input image path (skip file dialog)",
+)
+@click.option(
+    "-o",
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path, dir_okay=False),
+    default=None,
+    help="Exact output image path",
+)
+@click.option(
+    "-f",
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite output without prompting",
+)
+def main(
+    crop: bool,
+    resize: int,
+    verbose: int,
+    peg_count: int | None,
+    max_lines: int,
+    stroke_alpha: int,
+    delay_ms: int,
+    fast: bool,
+    input_path: Path | None,
+    output_path: Path | None,
+    force: bool,
+) -> None:
+    """Convert an image into a circular weaving loom pattern."""
+    if fast and (input_path is None or peg_count is None):
+        raise click.UsageError("--fast requires --input and --pegs")
     init_logging(verbose)
 
-    # Create root window for Tkinter
-    root = tk.Tk()
-
-    # Select an image using a file dialog
-    input_image_path = image_select.select(root)
-
-    if input_image_path is None:
+    if input_path is None:
+        root = tk.Tk()
+        input_image_path = image_select.select(root)
         root.destroy()
-        return
+        if input_image_path is None:
+            return
+    else:
+        input_image_path = input_path
 
-    if not input_image_path.is_file():
-        logging.warning("Selected path is not a file: %s", input_image_path)
-        root.destroy()
-        return
-
-    # Initialize image variables
-    cropped_img: Image.Image = Image.new("RGB", (100, 100), color="white")
-    gray_image: Image.Image = Image.new("RGB", (100, 100), color="white")
-    round_image: Image.Image = Image.new("RGB", (100, 100), color="white")
-    resized_image: Image.Image = Image.new("RGB", (100, 100), color="white")
-
-    # Process the image if it exists and is a file
     with Image.open(input_image_path) as img:
         logging.info("Original Image size: %dx%d", img.width, img.height)
-
-        # Check if cropping is required
-        if crop:
-            img_cropper = cropper.ImageCropperUI(root, img)
-
-            # Run cropping UI
-            root.mainloop()
-
-            logging.debug("crop UI initialized")
-
-            if img_cropper.cropped_image:
-                cropped_img = img_cropper.cropped_image
-
-                logging.debug(type(cropped_img))
-                logging.info(
-                    "Cropped image is of dimensions %dx%d",
-                    cropped_img.width,
-                    cropped_img.height,
-                )
+        if input_path is not None:
+            if crop:
+                min_dim = min(img.width, img.height)
+                left = (img.width - min_dim) // 2
+                top = (img.height - min_dim) // 2
+                cropped_img = img.crop((left, top, left + min_dim, top + min_dim))
             else:
-                logging.error("Cropped image is None")
-
+                cropped_img = img.copy()
+        elif not crop:
+            cropped_img = img.copy()
         else:
-            # Apply default cropping to the selected image
-            min_dim = min(img.width, img.height)
-            cropped_img = img.crop((0, 0, min_dim, min_dim))
+            crop_root = tk.Tk()
+            img_cropper = cropper.ImageCropperUI(crop_root, img)
+            img_cropper.root.mainloop()
+            if img_cropper.cropped_image is None:
+                logging.info("Cropping was cancelled")
+                return
+            cropped_img = img_cropper.cropped_image
 
-            logging.info("Default cropping applied")
-            logging.debug(
-                "Cropped image is of dimensions %dx%d",
-                cropped_img.width,
-                cropped_img.height,
-            )
-
-            root.destroy()
-
-        # grayscale the result
         gray_image = grayscaler.grayscale_img(cropped_img)
-
-        logging.info("Image has been grayscaled")
-
         round_image = round_mask.apply(gray_image)
-
-        logging.info("Image has been rounded out")
-
         resized_image = resizer.resize_img(round_image, resize)
 
-        logging.info("Image has been resized")
-
+    if peg_count is None:
         gui_root = tk.Tk()
         loom_gui = gui.LoomGUI(gui_root)
         gui_root.mainloop()
+        peg_count = loom_gui.get_num_pegs()
 
-        num_pegs = loom_gui.get_num_pegs()
-        logging.debug("Number of pegs: %d", num_pegs)
+    batch_image = loom.weave(
+        resized_image,
+        peg_count,
+        max_lines=max_lines,
+        stroke_alpha=stroke_alpha,
+        delay_ms=delay_ms,
+        fast=fast,
+    )
+    if fast and batch_image is not None:
+        saved_path = _save_output(batch_image, output_path, force=force)
+        if saved_path is not None:
+            logging.info("Saved output to %s", saved_path)
 
-        loom.weave(resized_image, num_pegs)
+
+def _save_output(
+    image: Image.Image, output_path: Path | None, *, force: bool = False
+) -> Path | None:
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    png_bytes = buffer.getvalue()
+    target = output_path
+    if target is None:
+        digest = hashlib.sha256(png_bytes).hexdigest()
+        target = Path("out") / f"{digest}.png"
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    if force:
+        target.write_bytes(png_bytes)
+        return target
+
+    base_target = target
+    while True:
+        if target.exists():
+            try:
+                choice = click.prompt(
+                    f"Output {target} exists; choose overwrite, numbered-duplicate, or cancel",
+                    type=click.Choice(
+                        ["overwrite", "numbered-duplicate", "cancel"],
+                        case_sensitive=False,
+                    ),
+                    default="cancel",
+                )
+            except (EOFError, OSError, Abort) as exc:
+                raise click.ClickException(
+                    "stdin unavailable; use --force or a non-colliding --output"
+                ) from exc
+            if choice == "cancel":
+                return None
+            if choice == "overwrite":
+                target.write_bytes(png_bytes)
+                return target
+            pattern = re.compile(
+                rf"{re.escape(base_target.stem)}-(\d+)"
+                rf"{re.escape(base_target.suffix)}"
+            )
+            numbers = [
+                int(match.group(1))
+                for sibling in base_target.parent.iterdir()
+                if (match := pattern.fullmatch(sibling.name)) is not None
+            ]
+            target = base_target.with_name(
+                f"{base_target.stem}-{max(numbers, default=0) + 1}"
+                f"{base_target.suffix}"
+            )
+            continue
+
+        try:
+            with target.open("xb") as output:
+                output.write(png_bytes)
+        except FileExistsError:
+            continue
+        return target

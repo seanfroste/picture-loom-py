@@ -8,7 +8,7 @@
 import math
 import tkinter as tk
 
-from PIL import Image, ImageDraw, ImageTk
+from PIL import Image, ImageDraw
 
 
 def make_thumbnail(image: Image.Image, factor: int) -> Image.Image:
@@ -93,33 +93,48 @@ def make_board(image: Image.Image, num_pegs: int) -> Image.Image:
 #         os.remove(temp_file)
 
 
-def weave(image: Image.Image, num_pegs: int) -> None:
-    """
-    Initializes the main drawing surface and draws the board with pegs on it.
+def weave(
+    image: Image.Image,
+    num_pegs: int,
+    *,
+    max_lines: int = 5000,
+    stroke_alpha: int = 60,
+    delay_ms: int = 20,
+    fast: bool = False,
+) -> Image.Image | None:
+    """Render a woven board, returning its composite in fast mode."""
+    base = make_board(image, num_pegs)
+    center_x = image.size[0] // 2
+    center_y = image.size[1] // 2
+    pegs = calculate_pegs(image.size[0] // 2, num_pegs)
+    nails = [(center_x + peg[0], center_y + peg[1]) for peg in pegs]
 
-    Args:
-        image (Image.Image): The image to be used for reference
-        num_pegs (int): The number of pegs to be drawn on the board
-    """
+    from . import animator
+
+    if fast:
+        return animator.fast_mode(
+            base,
+            image,
+            nails,
+            max_lines=max_lines,
+            stroke_alpha=stroke_alpha,
+        )
+
     root = tk.Tk()
     canvas = tk.Canvas(master=root, width=image.size[0], height=image.size[1])
-
-    base = make_board(image, num_pegs)
-
-    # # save background temporarily for use with turtle bgpic
-    # base.save("thumbnail.gif", "GIF")
-    # atexit.register(delete_temp)
-
-    # # set background
-    # shuttle.screen.bgpic("thumbnail.gif")
-
-    backdrop = ImageTk.PhotoImage(base)
-
-    canvas.create_image(0, 0, anchor=tk.NW, image=backdrop)  # type: ignore
     canvas.pack()
-
-    # turtle.done()
+    animator.run(
+        root,
+        canvas,
+        base,
+        image,
+        nails,
+        max_lines=max_lines,
+        stroke_alpha=stroke_alpha,
+        delay_ms=delay_ms,
+    )
     root.mainloop()
+    return None
 
 
 if __name__ == "__main__":
