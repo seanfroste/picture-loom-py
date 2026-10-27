@@ -145,3 +145,53 @@ def test_gui_schedules_one_shared_segment_per_callback(monkeypatch):
         Image.new("RGB", (4, 4), "white"), reference, nails, max_lines=len(expected)
     )
     assert cast(Image.Image, canvas.image).tobytes() == expected_image.tobytes()
+
+
+def test_seeded_sampling_can_skip_the_exhaustive_darkest_path():
+    reference = Image.new("L", (65, 1), 255)
+    reference.putpixel((11, 0), 0)
+    nails = [(x, 0) for x in range(65)]
+    assert list(animator.iter_lines(reference, nails, max_lines=1)) == [(0, 13)]
+    assert list(animator.iter_lines(reference, nails, max_lines=1)) == [(0, 13)]
+    assert list(
+        animator.iter_lines(reference, nails, max_lines=1, candidate_count=65)
+    ) == [(0, 11)]
+
+
+def test_single_candidate_sampling_uses_a_local_seed():
+    reference = Image.new("L", (3, 1), 0)
+    reference.putpixel((2, 0), 100)
+    assert list(
+        animator.iter_lines(
+            reference,
+            [(0, 0), (1, 0), (2, 0)],
+            max_lines=1,
+            blacklist_size=0,
+            candidate_count=1,
+        )
+    ) == [(0, 2)]
+
+
+@pytest.mark.parametrize(
+    ("alpha", "expected"),
+    [
+        (0, [(0, 1), (1, 0)]),
+        (60, [(0, 1), (1, 0)]),
+        (128, [(0, 1), (1, 2)]),
+        (255, [(0, 1), (1, 2)]),
+    ],
+)
+def test_residual_opacity_changes_subsequent_scoring(alpha, expected):
+    reference = Image.new("L", (5, 1), 0)
+    reference.putpixel((3, 0), 100)
+    reference.putpixel((4, 0), 100)
+    assert list(
+        animator.iter_lines(
+            reference,
+            [(0, 0), (2, 0), (4, 0)],
+            max_lines=2,
+            blacklist_size=0,
+            stroke_alpha=alpha,
+        )
+    ) == expected
+    assert [reference.getpixel((x, 0)) for x in range(5)] == [0, 0, 0, 100, 100]
