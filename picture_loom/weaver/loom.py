@@ -13,6 +13,15 @@ from PIL import Image, ImageDraw
 
 
 def make_thumbnail(image: Image.Image, factor: int) -> Image.Image:
+    """Create a thumbnail copy sized by the supplied reduction factor.
+
+    Args:
+        image: Source image to copy and reduce.
+        factor: Divisor applied to each source dimension.
+
+    Returns:
+        A reduced copy of the source image.
+    """
     thn = image.copy()
     thn.thumbnail(
         (image.size[0] // factor, image.size[1] // factor), Image.Resampling.BOX
@@ -21,6 +30,15 @@ def make_thumbnail(image: Image.Image, factor: int) -> Image.Image:
 
 
 def calculate_pegs(radius: int, num_pegs: int) -> list[tuple[int, int]]:
+    """Calculate evenly spaced peg offsets around a circle.
+
+    Args:
+        radius: Circle radius in pixels.
+        num_pegs: Number of peg positions to calculate.
+
+    Returns:
+        Peg offsets in circular order.
+    """
     return [
         (
             int(radius * math.cos(i * 2 * math.pi / num_pegs)),
@@ -31,6 +49,15 @@ def calculate_pegs(radius: int, num_pegs: int) -> list[tuple[int, int]]:
 
 
 def draw_pegs(image: Image.Image, num_pegs: int) -> Image.Image:
+    """Draw pegs in place on an image.
+
+    Args:
+        image: Board image to modify.
+        num_pegs: Number of pegs to draw around the image center.
+
+    Returns:
+        The modified board image.
+    """
     pegs_list = calculate_pegs(image.size[0] // 2, num_pegs)
 
     center_x = image.size[0] // 2
@@ -104,7 +131,20 @@ def weave(
     fast: bool = False,
     progress_callback: Callable[[int, Image.Image], None] | None = None,
 ) -> Image.Image | None:
-    """Render a woven board, returning its composite in fast mode."""
+    """Render a woven board, optionally returning its headless composite.
+
+    Args:
+        image: Processed image used to build and score the board.
+        num_pegs: Number of pegs placed around the board.
+        max_lines: Maximum number of string segments to render.
+        stroke_alpha: String opacity from 0 through 255.
+        delay_ms: Delay between GUI animation steps in milliseconds.
+        fast: Render without creating a GUI window.
+        progress_callback: Optional fast-mode checkpoint callback.
+
+    Returns:
+        The final composite in fast mode, or None after GUI animation.
+    """
     base = make_board(image, num_pegs)
     center_x = image.size[0] // 2
     center_y = image.size[1] // 2

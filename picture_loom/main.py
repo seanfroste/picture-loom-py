@@ -1,3 +1,5 @@
+"""Command-line interface for preparing and rendering Picture Loom images."""
+
 import hashlib
 import io
 import logging
@@ -66,7 +68,24 @@ def main(
     output_path: Path | None,
     force: bool,
 ) -> None:
-    """Convert an image into a circular weaving loom pattern."""
+    """Convert a processed image into a circular string-art loom pattern.
+
+    Args:
+        crop: Whether to crop the selected image.
+        resize: Output image side length in pixels.
+        verbose: Logging verbosity count.
+        peg_count: Number of pegs, or None to prompt interactively.
+        max_lines: Maximum number of string segments.
+        stroke_alpha: Rendered string opacity from 0 through 255.
+        delay_ms: Delay between GUI animation steps in milliseconds.
+        fast: Render headlessly and save the resulting PNG.
+        input_path: Input image path, or None to open the file chooser.
+        output_path: Exact output path, or None for a content-addressed path.
+        force: Overwrite an existing output without prompting.
+
+    Returns:
+        None.
+    """
     if fast and (input_path is None or peg_count is None):
         raise click.UsageError("--fast requires --input and --pegs")
     init_logging(verbose)
@@ -114,6 +133,7 @@ def main(
     progress_images: dict[int, Image.Image] = {}
 
     def capture_progress(percentage: int, snapshot: Image.Image) -> None:
+        """Retain a completed fast-render checkpoint for later persistence."""
         progress_images[percentage] = snapshot
 
     batch_image = loom.weave(
@@ -139,6 +159,15 @@ def main(
 def _save_output(
     image: Image.Image, output_path: Path | None, *, force: bool = False
 ) -> Path | None:
+    """Save a PNG, resolving collisions and returning its actual destination.
+    Args:
+        image: Image to encode as PNG.
+        output_path: Exact destination, or None to choose a content-addressed path.
+        force: Whether to replace an existing destination without prompting.
+
+    Returns:
+        The written path, or None if the collision prompt was cancelled.
+    """
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
     png_bytes = buffer.getvalue()
