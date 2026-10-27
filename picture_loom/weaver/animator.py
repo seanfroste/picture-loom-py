@@ -1,7 +1,6 @@
 """Animator for deterministic Bresenham-driven string art."""
 
-from __future__ import annotations
-
+import random
 import tkinter as tk
 from collections.abc import Iterator, Sequence
 
@@ -39,26 +38,48 @@ def iter_lines(
     *,
     max_lines: int = 5000,
     blacklist_size: int = 10,
+    candidate_count: int = 30,
+    stroke_alpha: int = 255,
 ) -> Iterator[tuple[int, int]]:
-    """Yield darkest eligible peg pairs, whitening each selected path."""
-    if not nails or max_lines <= 0:
+    """Yield seeded sampled peg pairs while compositing white over each path.
+
+    Args:
+        ref_image: Grayscale scoring image; the input is not mutated.
+        nails: Peg coordinates in circular order.
+        max_lines: Maximum number of segments to yield.
+        blacklist_size: Number of neighboring pegs excluded on either side.
+        candidate_count: Number of eligible endpoints sampled per segment.
+        stroke_alpha: Opacity of white residual strokes, from 0 through 255.
+
+    Yields:
+        Start and end peg indexes for each selected segment.
+    """
+    if not nails or max_lines <= 0 or candidate_count <= 0:
         return
 
-    reference = ref_image.convert("L")
+    reference = ref_image.convert("L").copy()
     pixels = reference.load()
     width, height = reference.size
     nail_count = len(nails)
     current = 0
+    sampler = random.Random(0)
 
     for _ in range(max_lines):
+        eligible = [
+            candidate
+            for candidate in range(nail_count)
+            if min(
+                abs(candidate - current),
+                nail_count - abs(candidate - current),
+            )
+            > blacklist_size
+        ]
+        sampled = sorted(sampler.sample(eligible, min(candidate_count, len(eligible))))
         best_index: int | None = None
         best_score: float | None = None
         best_path: list[tuple[int, int]] = []
 
-        for candidate in range(nail_count):
-            distance = abs(candidate - current)
-            if min(distance, nail_count - distance) <= blacklist_size:
-                continue
+        for candidate in sampled:
             path = [
                 point
                 for point in bresenham_line(nails[current], nails[candidate])
@@ -76,7 +97,10 @@ def iter_lines(
             break
 
         for point in best_path:
-            pixels[point] = 255
+            old = pixels[point]
+            pixels[point] = round(
+                old * (255 - stroke_alpha) / 255 + 255 * stroke_alpha / 255
+            )
         yield current, best_index
         current = best_index
 
@@ -88,6 +112,7 @@ def _draw_segment(
     end_index: int,
     stroke_alpha: int,
 ) -> None:
+    """Draw one semi-transparent black segment between indexed pegs."""
     draw_layer.line(
         (*nails[start_index], *nails[end_index]),
         fill=(0, 0, 0, stroke_alpha),
@@ -114,7 +139,9 @@ def run(
     backdrop = ImageTk.PhotoImage(composite)
     image_id = canvas.create_image(0, 0, anchor=tk.NW, image=backdrop)
     canvas.image = backdrop  # type: ignore[attr-defined]
-    lines = iter_lines(ref_image, nails, max_lines=max_lines)
+    lines = iter_lines(
+        ref_image, nails, max_lines=max_lines, stroke_alpha=stroke_alpha
+    )
 
     def step() -> None:
         try:
@@ -143,7 +170,12 @@ def fast_mode(
     """Render the shared deterministic line sequence without a GUI."""
     drawing_layer = Image.new("RGBA", base_image.size, (0, 0, 0, 0))
     draw_layer = ImageDraw.Draw(drawing_layer, "RGBA")
-    for start_index, end_index in iter_lines(ref_image, nails, max_lines=max_lines):
+    for start_index, end_index in iter_lines(
+        ref_image,
+        nails,
+        max_lines=max_lines,
+        stroke_alpha=stroke_alpha,
+    ):
         _draw_segment(draw_layer, nails, start_index, end_index, stroke_alpha)
 
     composite = base_image.convert("RGBA").copy()
