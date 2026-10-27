@@ -2,7 +2,7 @@
 
 import random
 import tkinter as tk
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 
 from PIL import Image, ImageDraw, ImageTk
 
@@ -166,10 +166,28 @@ def fast_mode(
     *,
     max_lines: int = 5000,
     stroke_alpha: int = 255,
+    progress_callback: Callable[[int, Image.Image], None] | None = None,
 ) -> Image.Image:
-    """Render the shared deterministic line sequence without a GUI."""
+    """Render segments headlessly, reporting independent progress snapshots.
+
+    Args:
+        base_image: Board image before string segments are drawn.
+        ref_image: Grayscale image used to score candidate segments.
+        nails: Peg coordinates in circular order.
+        max_lines: Maximum number of segments to draw.
+        stroke_alpha: Opacity of black string segments, from 0 through 255.
+        progress_callback: Optional callback receiving percentage and snapshot.
+
+    Returns:
+        The final composed board image.
+    """
     drawing_layer = Image.new("RGBA", base_image.size, (0, 0, 0, 0))
     draw_layer = ImageDraw.Draw(drawing_layer, "RGBA")
+    thresholds = {
+        (percentage * max_lines + 99) // 100: percentage
+        for percentage in (20, 40, 60, 80)
+    }
+    completed = 0
     for start_index, end_index in iter_lines(
         ref_image,
         nails,
@@ -177,6 +195,12 @@ def fast_mode(
         stroke_alpha=stroke_alpha,
     ):
         _draw_segment(draw_layer, nails, start_index, end_index, stroke_alpha)
+        completed += 1
+        percentage = thresholds.get(completed)
+        if progress_callback is not None and percentage is not None:
+            snapshot = base_image.convert("RGBA").copy()
+            snapshot.alpha_composite(drawing_layer)
+            progress_callback(percentage, snapshot)
 
     composite = base_image.convert("RGBA").copy()
     composite.alpha_composite(drawing_layer)

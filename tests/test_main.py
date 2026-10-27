@@ -17,7 +17,8 @@ def test_default_output_uses_final_png_digest_and_creates_parent(tmp_path, monke
     image.save(payload, format="PNG")
     assert (
         destination
-        == Path("out") / f"{hashlib.sha256(payload.getvalue()).hexdigest()}.png"
+        == Path("out")
+        / f"{hashlib.sha256(payload.getvalue()).hexdigest()[:10]}.png"
     )
     assert destination is not None
     assert destination.read_bytes() == payload.getvalue()
@@ -228,3 +229,93 @@ def test_file_created_at_write_boundary_is_preserved(tmp_path, monkeypatch):
     assert saved_path == tmp_path / "race-1.png"
     assert saved_path is not None
     assert Image.open(saved_path).size == (1, 1)
+
+
+def test_progress_images_are_saved_next_to_the_actual_output(tmp_path, monkeypatch):
+    source = tmp_path / "source.png"
+    Image.new("RGB", (4, 4), "white").save(source)
+    target = tmp_path / "woven.png"
+
+    run = 0
+
+    def weave(image, pegs, **kwargs):
+        nonlocal run
+        run += 1
+        kwargs["progress_callback"](
+            20, Image.new("RGB", (4, 4), "red" if run == 1 else "yellow")
+        )
+        kwargs["progress_callback"](40, Image.new("RGB", (4, 4), "blue"))
+        return Image.new("RGB", (4, 4), "green")
+    monkeypatch.setattr(main_module.loom, "weave", weave)
+    result = CliRunner().invoke(
+        main_module.main,
+        [
+            "--input",
+            str(source),
+            "--resize",
+            "4",
+            "--pegs",
+            "22",
+            "--fast",
+            "--output",
+            str(target),
+            "--force",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert Image.open(target).getpixel((0, 0)) == (0, 128, 0)
+    progress_dir = tmp_path / "woven-progress"
+    assert Image.open(progress_dir / "20-percent.png").getpixel((0, 0)) == (255, 0, 0)
+    assert Image.open(progress_dir / "40-percent.png").getpixel((0, 0)) == (0, 0, 255)
+    replaced = CliRunner().invoke(
+        main_module.main,
+        [
+            "--input",
+            str(source),
+            "--resize",
+            "4",
+            "--pegs",
+            "22",
+            "--fast",
+            "--output",
+            str(target),
+            "--force",
+        ],
+    )
+    assert replaced.exit_code == 0, replaced.output
+    assert Image.open(progress_dir / "20-percent.png").getpixel((0, 0)) == (
+        255,
+        255,
+        0,
+    )
+
+
+def test_cancelled_output_does_not_persist_progress(tmp_path, monkeypatch):
+    source = tmp_path / "source.png"
+    Image.new("RGB", (4, 4), "white").save(source)
+    target = tmp_path / "woven.png"
+    target.write_bytes(b"preserve")
+
+    def weave(image, pegs, **kwargs):
+        kwargs["progress_callback"](20, Image.new("RGB", (4, 4), "red"))
+        return Image.new("RGB", (4, 4), "green")
+
+    monkeypatch.setattr(main_module.loom, "weave", weave)
+    monkeypatch.setattr(main_module.click, "prompt", lambda *args, **kwargs: "cancel")
+    result = CliRunner().invoke(
+        main_module.main,
+        [
+            "--input",
+            str(source),
+            "--resize",
+            "4",
+            "--pegs",
+            "22",
+            "--fast",
+            "--output",
+            str(target),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert target.read_bytes() == b"preserve"
+    assert not (tmp_path / "woven-progress").exists()
