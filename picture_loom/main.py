@@ -9,13 +9,15 @@ import rich_click as click
 from click.exceptions import Abort
 from PIL import Image
 
+from . import __version__
 from .img_proc import cropper, grayscaler, resizer, round_mask
 from .img_selector import image_select
 from .logging_config import init_logging
 from .weaver import gui, loom
 
 
-@click.command()
+@click.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.version_option(version=__version__)
 @click.option("--crop/--no-crop", default=True, help="Enable or disable cropping")
 @click.option("--resize", default=512, type=int, help="Resize dimension")
 @click.option(
