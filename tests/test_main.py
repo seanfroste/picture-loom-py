@@ -90,6 +90,31 @@ def test_fast_requires_both_arguments(arguments):
     assert "--fast requires --input and --pegs" in cli_result.output
 
 
+
+
+def test_version_flag_matches_package_metadata_without_tk(monkeypatch):
+    import picture_loom
+
+    monkeypatch.setattr(
+        main_module.tk,
+        "Tk",
+        lambda: (_ for _ in ()).throw(AssertionError("Tk was constructed")),
+    )
+    result = CliRunner().invoke(main_module.main, ["--version"])
+    assert result.exit_code == 0, result.output
+    assert picture_loom.__version__ in result.output
+
+
+@pytest.mark.parametrize("argument", ["--help", "-h"])
+def test_help_flags_exit_without_tk(argument, monkeypatch):
+    monkeypatch.setattr(
+        main_module.tk,
+        "Tk",
+        lambda: (_ for _ in ()).throw(AssertionError("Tk was constructed")),
+    )
+    result = CliRunner().invoke(main_module.main, [argument])
+    assert result.exit_code == 0, result.output
+    assert "--version" in result.output
 def test_closed_stdin_refuses_collision_without_modifying_target(tmp_path, monkeypatch):
     target = tmp_path / "same.png"
     target.write_bytes(b"user data")
