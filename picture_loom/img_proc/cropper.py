@@ -1,3 +1,5 @@
+"""Tk-based circular image cropping interface."""
+
 # img_proc/image_cropper.py
 import math
 import tkinter

@@ -112,7 +112,15 @@ def _draw_segment(
     end_index: int,
     stroke_alpha: int,
 ) -> None:
-    """Draw one semi-transparent black segment between indexed pegs."""
+    """Draw one semi-transparent black segment between indexed pegs.
+
+    Args:
+        draw_layer: RGBA drawing surface for string strokes.
+        nails: Peg coordinates indexed by the segment endpoints.
+        start_index: Index of the first endpoint peg.
+        end_index: Index of the second endpoint peg.
+        stroke_alpha: Black stroke opacity from 0 through 255.
+    """
     draw_layer.line(
         (*nails[start_index], *nails[end_index]),
         fill=(0, 0, 0, stroke_alpha),
@@ -131,7 +139,18 @@ def run(
     stroke_alpha: int = 60,
     delay_ms: int = 20,
 ) -> None:
-    """Animate the shared deterministic line sequence on the canvas."""
+    """Animate shared deterministic segments on the Tk canvas.
+
+    Args:
+        root: Tk root used to schedule animation frames.
+        canvas: Canvas displaying the composed board.
+        base_image: Board image before string segments are drawn.
+        ref_image: Grayscale image used to score candidate segments.
+        nails: Peg coordinates in circular order.
+        max_lines: Maximum number of segments to draw.
+        stroke_alpha: Black string opacity from 0 through 255.
+        delay_ms: Delay between rendered segments in milliseconds.
+    """
     drawing_layer = Image.new("RGBA", base_image.size, (0, 0, 0, 0))
     draw_layer = ImageDraw.Draw(drawing_layer, "RGBA")
     composite = base_image.convert("RGBA").copy()
@@ -144,6 +163,7 @@ def run(
     )
 
     def step() -> None:
+        """Draw the next line and schedule another animation frame."""
         try:
             start_index, end_index = next(lines)
         except StopIteration:
