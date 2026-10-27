@@ -5,6 +5,7 @@ import pytest
 from PIL import Image
 
 from picture_loom.weaver import animator
+from picture_loom.weaver.loom import calculate_pegs
 
 
 @pytest.mark.parametrize(
@@ -195,3 +196,60 @@ def test_residual_opacity_changes_subsequent_scoring(alpha, expected):
         )
     ) == expected
     assert [reference.getpixel((x, 0)) for x in range(5)] == [0, 0, 0, 100, 100]
+
+
+def test_fast_mode_progress_snapshots_cross_budget_thresholds():
+    nails = [(32 + x, 32 + y) for x, y in calculate_pegs(30, 32)]
+    image = Image.new("RGB", (64, 64), "white")
+    checkpoints = []
+    result = animator.fast_mode(
+        image,
+        Image.new("L", image.size, 0),
+        nails,
+        max_lines=5,
+        progress_callback=lambda percentage, snapshot: checkpoints.append(
+            (percentage, snapshot)
+        ),
+    )
+    assert [percentage for percentage, _ in checkpoints] == [20, 40, 60, 80]
+    drawn_pixels = [
+        sum(
+            snapshot.getpixel((x, y)) != (255, 255, 255, 255)
+            for x in range(64)
+            for y in range(64)
+        )
+        for _, snapshot in checkpoints
+    ]
+    assert drawn_pixels == [47, 101, 151, 196]
+    assert all(
+        checkpoints[index - 1][1].tobytes() != checkpoints[index][1].tobytes()
+        for index in range(1, len(checkpoints))
+    )
+    assert checkpoints[0][1] is not checkpoints[1][1]
+    assert checkpoints[0][1].tobytes() != result.tobytes()
+    assert checkpoints[0][1].getpixel((32, 32)) == (255, 255, 255, 255)
+
+
+def test_fast_mode_progress_coalesces_thresholds_to_highest_percentage():
+    nails = [(32 + x, 32 + y) for x, y in calculate_pegs(30, 32)]
+    checkpoints = []
+    animator.fast_mode(
+        Image.new("RGB", (64, 64), "white"),
+        Image.new("L", (64, 64), 0),
+        nails,
+        max_lines=1,
+        progress_callback=lambda percentage, image: checkpoints.append(percentage),
+    )
+    assert checkpoints == [80]
+
+
+def test_default_line_budget_reports_all_progress_checkpoints():
+    nails = [(32 + x, 32 + y) for x, y in calculate_pegs(30, 32)]
+    percentages = []
+    animator.fast_mode(
+        Image.new("RGB", (64, 64), "white"),
+        Image.new("L", (64, 64), 0),
+        nails,
+        progress_callback=lambda percentage, image: percentages.append(percentage),
+    )
+    assert percentages == [20, 40, 60, 80]

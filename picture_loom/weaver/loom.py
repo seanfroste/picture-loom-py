@@ -7,6 +7,7 @@
 # import os
 import math
 import tkinter as tk
+from collections.abc import Callable
 
 from PIL import Image, ImageDraw
 
@@ -101,6 +102,7 @@ def weave(
     stroke_alpha: int = 60,
     delay_ms: int = 20,
     fast: bool = False,
+    progress_callback: Callable[[int, Image.Image], None] | None = None,
 ) -> Image.Image | None:
     """Render a woven board, returning its composite in fast mode."""
     base = make_board(image, num_pegs)
@@ -118,6 +120,7 @@ def weave(
             nails,
             max_lines=max_lines,
             stroke_alpha=stroke_alpha,
+            progress_callback=progress_callback,
         )
 
     root = tk.Tk()

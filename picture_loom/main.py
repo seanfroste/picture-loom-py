@@ -109,6 +109,11 @@ def main(
         gui_root.mainloop()
         peg_count = loom_gui.get_num_pegs()
 
+    progress_images: dict[int, Image.Image] = {}
+
+    def capture_progress(percentage: int, snapshot: Image.Image) -> None:
+        progress_images[percentage] = snapshot
+
     batch_image = loom.weave(
         resized_image,
         peg_count,
@@ -116,10 +121,16 @@ def main(
         stroke_alpha=stroke_alpha,
         delay_ms=delay_ms,
         fast=fast,
+        progress_callback=capture_progress if fast else None,
     )
     if fast and batch_image is not None:
         saved_path = _save_output(batch_image, output_path, force=force)
         if saved_path is not None:
+            progress_dir = saved_path.with_name(f"{saved_path.stem}-progress")
+            if progress_images:
+                progress_dir.mkdir(parents=True, exist_ok=True)
+                for percentage, snapshot in progress_images.items():
+                    snapshot.save(progress_dir / f"{percentage}-percent.png")
             logging.info("Saved output to %s", saved_path)
 
 
@@ -132,7 +143,7 @@ def _save_output(
     target = output_path
     if target is None:
         digest = hashlib.sha256(png_bytes).hexdigest()
-        target = Path("out") / f"{digest}.png"
+        target = Path("out") / f"{digest[:10]}.png"
     target.parent.mkdir(parents=True, exist_ok=True)
 
     if force:
