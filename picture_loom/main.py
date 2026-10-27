@@ -18,7 +18,10 @@ from .logging_config import init_logging
 from .weaver import gui, loom
 
 
-@click.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.command(
+    context_settings={"help_option_names": ["-h", "--help"]},
+    help="Convert an image into a circular weaving loom pattern.",
+)
 @click.version_option(version=__version__)
 @click.option("--crop/--no-crop", default=True, help="Enable or disable cropping")
 @click.option("--resize", default=512, type=int, help="Resize dimension")

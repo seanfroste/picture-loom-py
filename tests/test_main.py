@@ -115,6 +115,9 @@ def test_help_flags_exit_without_tk(argument, monkeypatch):
     result = CliRunner().invoke(main_module.main, [argument])
     assert result.exit_code == 0, result.output
     assert "--version" in result.output
+    assert "Args:" not in result.output
+
+
 def test_closed_stdin_refuses_collision_without_modifying_target(tmp_path, monkeypatch):
     target = tmp_path / "same.png"
     target.write_bytes(b"user data")

@@ -4,7 +4,7 @@ import random
 import tkinter as tk
 from collections.abc import Callable, Iterator, Sequence
 
-from PIL import Image, ImageDraw, ImageTk
+from PIL import Image, ImageTk
 
 
 def bresenham_line(
@@ -106,26 +106,41 @@ def iter_lines(
 
 
 def _draw_segment(
-    draw_layer: ImageDraw.ImageDraw,
+    composite: Image.Image,
     nails: Sequence[tuple[int, int]],
     start_index: int,
     end_index: int,
     stroke_alpha: int,
 ) -> None:
-    """Draw one semi-transparent black segment between indexed pegs.
+    """Composite one semi-transparent black segment into the board.
 
     Args:
-        draw_layer: RGBA drawing surface for string strokes.
+        composite: RGBA board updated in place.
         nails: Peg coordinates indexed by the segment endpoints.
         start_index: Index of the first endpoint peg.
         end_index: Index of the second endpoint peg.
         stroke_alpha: Black stroke opacity from 0 through 255.
     """
-    draw_layer.line(
-        (*nails[start_index], *nails[end_index]),
-        fill=(0, 0, 0, stroke_alpha),
-        width=1,
-    )
+    if stroke_alpha <= 0:
+        return
+
+    pixels = composite.load()
+    width, height = composite.size
+    for x, y in bresenham_line(nails[start_index], nails[end_index]):
+        if not (0 <= x < width and 0 <= y < height):
+            continue
+        red, green, blue, old_alpha = pixels[x, y]
+        out_alpha = stroke_alpha + round(old_alpha * (255 - stroke_alpha) / 255)
+        if out_alpha:
+            scale = old_alpha * (255 - stroke_alpha) / (255 * out_alpha)
+            pixels[x, y] = (
+                round(red * scale),
+                round(green * scale),
+                round(blue * scale),
+                out_alpha,
+            )
+        else:
+            pixels[x, y] = (0, 0, 0, 0)
 
 
 def run(
@@ -151,10 +166,7 @@ def run(
         stroke_alpha: Black string opacity from 0 through 255.
         delay_ms: Delay between rendered segments in milliseconds.
     """
-    drawing_layer = Image.new("RGBA", base_image.size, (0, 0, 0, 0))
-    draw_layer = ImageDraw.Draw(drawing_layer, "RGBA")
     composite = base_image.convert("RGBA").copy()
-    composite.alpha_composite(drawing_layer)
     backdrop = ImageTk.PhotoImage(composite)
     image_id = canvas.create_image(0, 0, anchor=tk.NW, image=backdrop)
     canvas.image = backdrop  # type: ignore[attr-defined]
@@ -168,10 +180,8 @@ def run(
             start_index, end_index = next(lines)
         except StopIteration:
             return
-        _draw_segment(draw_layer, nails, start_index, end_index, stroke_alpha)
-        updated = base_image.convert("RGBA").copy()
-        updated.alpha_composite(drawing_layer)
-        image = ImageTk.PhotoImage(updated)
+        _draw_segment(composite, nails, start_index, end_index, stroke_alpha)
+        image = ImageTk.PhotoImage(composite)
         canvas.image = image  # type: ignore[attr-defined]
         canvas.itemconfig(image_id, image=image)
         root.after(delay_ms, step)
@@ -201,8 +211,7 @@ def fast_mode(
     Returns:
         The final composed board image.
     """
-    drawing_layer = Image.new("RGBA", base_image.size, (0, 0, 0, 0))
-    draw_layer = ImageDraw.Draw(drawing_layer, "RGBA")
+    composite = base_image.convert("RGBA").copy()
     thresholds = {
         (percentage * max_lines + 99) // 100: percentage
         for percentage in (20, 40, 60, 80)
@@ -214,14 +223,10 @@ def fast_mode(
         max_lines=max_lines,
         stroke_alpha=stroke_alpha,
     ):
-        _draw_segment(draw_layer, nails, start_index, end_index, stroke_alpha)
+        _draw_segment(composite, nails, start_index, end_index, stroke_alpha)
         completed += 1
         percentage = thresholds.get(completed)
         if progress_callback is not None and percentage is not None:
-            snapshot = base_image.convert("RGBA").copy()
-            snapshot.alpha_composite(drawing_layer)
-            progress_callback(percentage, snapshot)
+            progress_callback(percentage, composite.copy())
 
-    composite = base_image.convert("RGBA").copy()
-    composite.alpha_composite(drawing_layer)
     return composite

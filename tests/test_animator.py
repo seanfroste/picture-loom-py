@@ -253,3 +253,31 @@ def test_default_line_budget_reports_all_progress_checkpoints():
         progress_callback=lambda percentage, image: percentages.append(percentage),
     )
     assert percentages == [20, 40, 60, 80]
+
+
+@pytest.mark.parametrize(
+    ("alpha", "checkpoint_values", "final_value"),
+    [
+        (0, [255, 255, 255, 255], 255),
+        (60, [195, 149, 114, 87], 67),
+        (255, [0, 0, 0, 0], 0),
+    ],
+)
+def test_repeated_rendered_strokes_accumulate_opacity(
+    alpha, checkpoint_values, final_value
+):
+    nails = [(0, 1)] * 11 + [(7, 1)] * 11
+    values = []
+    result = animator.fast_mode(
+        Image.new("RGB", (8, 3), "white"),
+        Image.new("L", (8, 3), 0),
+        nails,
+        max_lines=5,
+        stroke_alpha=alpha,
+        progress_callback=lambda percentage, snapshot: values.append(
+            snapshot.getpixel((3, 1))[0]
+        ),
+    )
+    assert values == checkpoint_values
+    assert result.getpixel((3, 1)) == (final_value, final_value, final_value, 255)
+    assert result.getpixel((3, 0)) == (255, 255, 255, 255)

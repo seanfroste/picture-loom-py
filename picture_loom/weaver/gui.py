@@ -42,8 +42,10 @@ class LoomGUI:
 
     def on_button_click(self) -> None:
         """Event handler for the button click event. This function retrieves the value from the slider, stores it in the instance variable `num_pegs`, and then destroys the GUI window."""
+        # Get the selected slider value.
         self.num_pegs = int(self.num_pegs_slider.get())
         logging.debug("Number of pegs: %d", self.num_pegs)
+        # Destroy the window after storing the selection.
         self.root.destroy()
 
     def get_num_pegs(self) -> int:

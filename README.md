@@ -51,11 +51,18 @@ final PNG bytes. At a collision, choose `overwrite`, `numbered-duplicate`, or
 existing integer suffix. `--force` replaces the selected output path without
 prompting. Explicit `--output` paths are preserved exactly.
 
-After the final image saves successfully, reached fast-render checkpoints are
-written beside it in `<saved-stem>-progress/`, as
+For each fast render, thresholds are 20%, 40%, 60%, and 80% of the effective
+line budget, including the default 5,000 lines; rounded-up thresholds are used.
+When a tiny budget gives multiple milestones at the same completed line, one
+checkpoint is saved with the highest crossed percentage. Reached checkpoints
+are written beside the final image in `<saved-stem>-progress/`, as
 `20-percent.png`, `40-percent.png`, `60-percent.png`, and `80-percent.png`.
 For the default output, this is `out/<10-char-hash>-progress/`. A cancelled
-final-output collision writes no progress images.
+final-output collision writes no progress images. If only one endpoint remains
+eligible, later milestones can show the same image after repeated strokes reach
+their configured opacity; with 22 pegs and a 10-index exclusion, only the
+opposite peg is eligible at each step. A later successful run replaces
+checkpoint files with matching names.
 
 Options:
 
