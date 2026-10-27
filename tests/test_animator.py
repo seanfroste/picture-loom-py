@@ -23,11 +23,67 @@ def test_bresenham_pixels(start, end, expected):
     assert list(animator.bresenham_line(start, end)) == expected
 
 
+def test_seeded_start_and_sample_order_break_ties():
+    reference = Image.new("L", (2, 1), 0)
+    reference.putpixel((1, 0), 255)
+    nails = [(0, 0)] * 24
+    nails[23] = (1, 0)
+    assert list(animator.iter_lines(reference, nails, max_lines=1)) == [(12, 0)]
+
+
+def test_rgb_scoring_uses_arithmetic_channel_mean():
+    reference = Image.new("RGB", (3, 2), "white")
+    reference.putpixel((0, 0), (255, 0, 0))
+    reference.putpixel((1, 1), (0, 180, 0))
+    original = reference.tobytes()
+    nails = [(0, 1)] * 24
+    nails[1] = (0, 0)
+    nails[0] = (1, 1)
+    assert list(animator.iter_lines(reference, nails, max_lines=1)) == [(12, 0)]
+    assert reference.tobytes() == original
+
+
+def test_reference_bresenham_strict_tie_steps():
+    assert list(animator.bresenham_line((0, 0), (1, 2))) == [
+        (0, 0), (0, 1), (1, 2)
+    ]
+
+
+def test_alpha_38_residual_keeps_a_darker_return_path():
+    reference = Image.new("L", (4, 1), 200)
+    reference.putpixel((0, 0), 0)
+    reference.putpixel((1, 0), 0)
+    reference.putpixel((2, 0), 42)
+    nails = [(3, 0)] * 24
+    nails[1] = (1, 0)
+    nails[12] = (0, 0)
+    nails[14] = (2, 0)
+    assert list(
+        animator.iter_lines(reference, nails, max_lines=2, stroke_alpha=38)
+    ) == [(12, 1), (1, 12)]
+    assert list(
+        animator.iter_lines(reference, nails, max_lines=2, stroke_alpha=255)
+    ) == [(12, 1), (1, 14)]
+
+
+@pytest.mark.parametrize("mirrored", [False, True])
+def test_greedy_path_follows_mirrored_off_center_dark_feature(mirrored):
+    reference = Image.new("RGB", (5, 5), "white")
+    feature_x = 4 if mirrored else 0
+    reference.putpixel((feature_x, 2), (0, 0, 0))
+    nails = [(2, 2)] * 24
+    nails[0] = (4 if mirrored else 0, 2)
+    nails[1] = (2, 0)
+    original = reference.tobytes()
+    assert list(animator.iter_lines(reference, nails, max_lines=1)) == [(12, 0)]
+    assert reference.tobytes() == original
+
+
 def test_fixed_start_ties_and_circular_blacklist():
     reference = Image.new("L", (1, 1), 255)
     nails = [(0, 0)] * 24
     segments = list(animator.iter_lines(reference, nails, max_lines=4))
-    assert segments == [(0, 11), (11, 0), (0, 11), (11, 0)]
+    assert segments == [(12, 23), (23, 10), (10, 21), (21, 9)]
 
 
 def test_darkest_path_and_whitening_without_mutating_input():
@@ -39,12 +95,12 @@ def test_darkest_path_and_whitening_without_mutating_input():
     nails = [(0, 0), (4, 0), (4, 4), (0, 4)]
     assert list(
         animator.iter_lines(reference, nails, max_lines=2, blacklist_size=0)
-    ) == [(0, 1), (1, 2)]
+    ) == [(3, 2), (2, 1)]
     assert reference.mode == "RGB"
     assert reference.tobytes() == original
 
 
-@pytest.mark.parametrize("budget, expected", [(0, []), (1, [(0, 1)])])
+@pytest.mark.parametrize("budget, expected", [(0, []), (1, [(1, 0)])])
 def test_segment_budget(budget, expected):
     assert (
         list(
@@ -74,7 +130,7 @@ def test_scoring_uses_only_in_bounds_pixels():
             max_lines=1,
             blacklist_size=0,
         )
-    ) == [(0, 1)]
+    ) == [(1, 0)]
 
 
 def test_paths_without_reference_pixels_are_not_candidates():
@@ -92,15 +148,19 @@ def test_paths_without_reference_pixels_are_not_candidates():
 
 
 def test_fast_mode_draws_generated_bresenham_segment():
-    nails = [(0, 0)] * 11 + [(3, 0)] + [(3, 3)] * 12
+    nails = [(0, 0)] * 24
+    nails[23] = (3, 0)
     image = Image.new("RGB", (4, 4), "white")
-    rendered = animator.fast_mode(image, Image.new("L", (4, 4), 0), nails, max_lines=1)
+    rendered = animator.fast_mode(
+        image, Image.new("L", (4, 4), 0), nails, max_lines=1
+    )
     assert rendered.getpixel((1, 0)) == (0, 0, 0, 255)
     assert rendered.getpixel((3, 3)) == (255, 255, 255, 255)
 
 
 def test_gui_schedules_one_shared_segment_per_callback(monkeypatch):
-    nails = [(0, 0)] * 11 + [(3, 0)] + [(3, 3)] * 12
+    nails = [(0, 0)] * 24
+    nails[23] = (3, 0)
     reference = Image.new("L", (4, 4), 0)
     expected = list(animator.iter_lines(reference, nails, max_lines=2))
 
@@ -152,11 +212,11 @@ def test_seeded_sampling_can_skip_the_exhaustive_darkest_path():
     reference = Image.new("L", (65, 1), 255)
     reference.putpixel((11, 0), 0)
     nails = [(x, 0) for x in range(65)]
-    assert list(animator.iter_lines(reference, nails, max_lines=1)) == [(0, 13)]
-    assert list(animator.iter_lines(reference, nails, max_lines=1)) == [(0, 13)]
+    assert list(animator.iter_lines(reference, nails, max_lines=1)) == [(49, 10)]
+    assert list(animator.iter_lines(reference, nails, max_lines=1)) == [(49, 10)]
     assert list(
         animator.iter_lines(reference, nails, max_lines=1, candidate_count=65)
-    ) == [(0, 11)]
+    ) == [(49, 11)]
 
 
 def test_single_candidate_sampling_uses_a_local_seed():
@@ -170,16 +230,17 @@ def test_single_candidate_sampling_uses_a_local_seed():
             blacklist_size=0,
             candidate_count=1,
         )
-    ) == [(0, 2)]
+    ) == [(1, 2)]
 
 
 @pytest.mark.parametrize(
     ("alpha", "expected"),
     [
-        (0, [(0, 1), (1, 0)]),
-        (60, [(0, 1), (1, 0)]),
-        (128, [(0, 1), (1, 2)]),
-        (255, [(0, 1), (1, 2)]),
+        (0, [(1, 0), (0, 1)]),
+        (38, [(1, 0), (0, 1)]),
+        (60, [(1, 0), (0, 1)]),
+        (128, [(1, 0), (0, 2)]),
+        (255, [(1, 0), (0, 2)]),
     ],
 )
 def test_residual_opacity_changes_subsequent_scoring(alpha, expected):
@@ -220,7 +281,7 @@ def test_fast_mode_progress_snapshots_cross_budget_thresholds():
         )
         for _, snapshot in checkpoints
     ]
-    assert drawn_pixels == [47, 101, 151, 196]
+    assert drawn_pixels == [52, 103, 148, 200]
     assert all(
         checkpoints[index - 1][1].tobytes() != checkpoints[index][1].tobytes()
         for index in range(1, len(checkpoints))

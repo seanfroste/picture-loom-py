@@ -14,20 +14,20 @@ def bresenham_line(
     x, y = start
     end_x, end_y = end
     dx = abs(end_x - x)
-    sx = 1 if x < end_x else -1
-    dy = -abs(end_y - y)
-    sy = 1 if y < end_y else -1
-    error = dx + dy
+    dy = abs(end_y - y)
+    sx = 1 if x < end_x else -1 if x > end_x else 0
+    sy = 1 if y < end_y else -1 if y > end_y else 0
+    error = dx - dy
 
     while True:
         yield x, y
         if (x, y) == (end_x, end_y):
             break
         doubled_error = 2 * error
-        if doubled_error >= dy:
-            error += dy
+        if doubled_error > -dy:
+            error -= dy
             x += sx
-        if doubled_error <= dx:
+        if doubled_error < dx:
             error += dx
             y += sy
 
@@ -57,12 +57,12 @@ def iter_lines(
     if not nails or max_lines <= 0 or candidate_count <= 0:
         return
 
-    reference = ref_image.convert("L").copy()
+    reference = ref_image.convert("L" if ref_image.mode == "L" else "RGB")
     pixels = reference.load()
     width, height = reference.size
     nail_count = len(nails)
-    current = 0
     sampler = random.Random(0)
+    current = sampler.randrange(nail_count)
 
     for _ in range(max_lines):
         eligible = [
@@ -74,7 +74,7 @@ def iter_lines(
             )
             > blacklist_size
         ]
-        sampled = sorted(sampler.sample(eligible, min(candidate_count, len(eligible))))
+        sampled = sampler.sample(eligible, min(candidate_count, len(eligible)))
         best_index: int | None = None
         best_score: float | None = None
         best_path: list[tuple[int, int]] = []
@@ -87,8 +87,13 @@ def iter_lines(
             ]
             if not path:
                 continue
-            score = sum(pixels[point] for point in path) / len(path)
-            if best_score is None or score < best_score:
+            if reference.mode == "L":
+                score = sum(pixels[point] for point in path) / len(path)
+            else:
+                score = sum(
+                    sum(pixels[point]) / 3 for point in path
+                ) / len(path)
+            if best_score is None or score <= best_score:
                 best_score = score
                 best_index = candidate
                 best_path = path
@@ -98,9 +103,15 @@ def iter_lines(
 
         for point in best_path:
             old = pixels[point]
-            pixels[point] = round(
-                old * (255 - stroke_alpha) / 255 + 255 * stroke_alpha / 255
-            )
+            if reference.mode == "L":
+                pixels[point] = round(
+                    old * (255 - stroke_alpha) / 255 + stroke_alpha
+                )
+            else:
+                pixels[point] = tuple(
+                    round(channel * (255 - stroke_alpha) / 255 + stroke_alpha)
+                    for channel in old
+                )
         yield current, best_index
         current = best_index
 

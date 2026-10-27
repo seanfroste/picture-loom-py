@@ -64,6 +64,14 @@ their configured opacity; with 22 pegs and a 10-index exclusion, only the
 opposite peg is eligible at each step. A later successful run replaces
 checkpoint files with matching names.
 
+Line selection is deterministic: a local seed chooses the starting peg and the
+sample order for each segment. Up to 30 unique candidates are sampled from pegs
+more than 10 positions away around the circle; later sampled candidates win
+equal-score ties. Each candidate is scored over its inclusive Bresenham path
+using arithmetic RGB channel mean (or the grayscale value), then its pixels are
+composited toward white at the configured stroke alpha before the next choice.
+The animated and fast renderers share this selection and scoring core.
+
 Options:
 
 | Option | Default | Description |
