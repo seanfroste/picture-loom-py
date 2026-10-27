@@ -1,3 +1,5 @@
+"""Convert source images to grayscale for string-art scoring."""
+
 # img_proc/grayscaler.py
 
 from PIL import Image

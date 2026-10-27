@@ -1,3 +1,5 @@
+"""Public package metadata and import namespace for Picture Loom."""
+
 # picture_loom - Convert images into circular weaving loom patterns
 
 try:

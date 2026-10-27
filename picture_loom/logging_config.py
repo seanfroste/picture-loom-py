@@ -1,3 +1,5 @@
+"""Configure application logging with Rich console output."""
+
 import logging
 
 from rich.logging import RichHandler

@@ -1,3 +1,5 @@
+"""Command-line interface for preparing and rendering Picture Loom images."""
+
 import hashlib
 import io
 import logging
@@ -9,13 +11,18 @@ import rich_click as click
 from click.exceptions import Abort
 from PIL import Image
 
+from . import __version__
 from .img_proc import cropper, grayscaler, resizer, round_mask
 from .img_selector import image_select
 from .logging_config import init_logging
 from .weaver import gui, loom
 
 
-@click.command()
+@click.command(
+    context_settings={"help_option_names": ["-h", "--help"]},
+    help="Convert an image into a circular weaving loom pattern.",
+)
+@click.version_option(version=__version__)
 @click.option("--crop/--no-crop", default=True, help="Enable or disable cropping")
 @click.option("--resize", default=512, type=int, help="Resize dimension")
 @click.option(
@@ -64,7 +71,24 @@ def main(
     output_path: Path | None,
     force: bool,
 ) -> None:
-    """Convert an image into a circular weaving loom pattern."""
+    """Convert a processed image into a circular string-art loom pattern.
+
+    Args:
+        crop: Whether to crop the selected image.
+        resize: Output image side length in pixels.
+        verbose: Logging verbosity count.
+        peg_count: Number of pegs, or None to prompt interactively.
+        max_lines: Maximum number of string segments.
+        stroke_alpha: Rendered string opacity from 0 through 255.
+        delay_ms: Delay between GUI animation steps in milliseconds.
+        fast: Render headlessly and save the resulting PNG.
+        input_path: Input image path, or None to open the file chooser.
+        output_path: Exact output path, or None for a content-addressed path.
+        force: Overwrite an existing output without prompting.
+
+    Returns:
+        None.
+    """
     if fast and (input_path is None or peg_count is None):
         raise click.UsageError("--fast requires --input and --pegs")
     init_logging(verbose)
@@ -109,6 +133,12 @@ def main(
         gui_root.mainloop()
         peg_count = loom_gui.get_num_pegs()
 
+    progress_images: dict[int, Image.Image] = {}
+
+    def capture_progress(percentage: int, snapshot: Image.Image) -> None:
+        """Retain a completed fast-render checkpoint for later persistence."""
+        progress_images[percentage] = snapshot
+
     batch_image = loom.weave(
         resized_image,
         peg_count,
@@ -116,23 +146,44 @@ def main(
         stroke_alpha=stroke_alpha,
         delay_ms=delay_ms,
         fast=fast,
+        progress_callback=capture_progress if fast else None,
     )
     if fast and batch_image is not None:
         saved_path = _save_output(batch_image, output_path, force=force)
         if saved_path is not None:
+            progress_dir = saved_path.with_name(f"{saved_path.stem}-progress")
+            if progress_images:
+                progress_dir.mkdir(parents=True, exist_ok=True)
+            if progress_dir.is_dir():
+                for percentage in (20, 40, 60, 80):
+                    checkpoint_path = progress_dir / f"{percentage}-percent.png"
+                    snapshot = progress_images.get(percentage)
+                    if snapshot is None:
+                        checkpoint_path.unlink(missing_ok=True)
+                    else:
+                        snapshot.save(checkpoint_path)
             logging.info("Saved output to %s", saved_path)
 
 
 def _save_output(
     image: Image.Image, output_path: Path | None, *, force: bool = False
 ) -> Path | None:
+    """Save a PNG, resolving collisions and returning its actual destination.
+    Args:
+        image: Image to encode as PNG.
+        output_path: Exact destination, or None to choose a content-addressed path.
+        force: Whether to replace an existing destination without prompting.
+
+    Returns:
+        The written path, or None if the collision prompt was cancelled.
+    """
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
     png_bytes = buffer.getvalue()
     target = output_path
     if target is None:
         digest = hashlib.sha256(png_bytes).hexdigest()
-        target = Path("out") / f"{digest}.png"
+        target = Path("out") / f"{digest[:10]}.png"
     target.parent.mkdir(parents=True, exist_ok=True)
 
     if force:
