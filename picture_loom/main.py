@@ -154,8 +154,14 @@ def main(
             progress_dir = saved_path.with_name(f"{saved_path.stem}-progress")
             if progress_images:
                 progress_dir.mkdir(parents=True, exist_ok=True)
-                for percentage, snapshot in progress_images.items():
-                    snapshot.save(progress_dir / f"{percentage}-percent.png")
+            if progress_dir.is_dir():
+                for percentage in (20, 40, 60, 80):
+                    checkpoint_path = progress_dir / f"{percentage}-percent.png"
+                    snapshot = progress_images.get(percentage)
+                    if snapshot is None:
+                        checkpoint_path.unlink(missing_ok=True)
+                    else:
+                        snapshot.save(checkpoint_path)
             logging.info("Saved output to %s", saved_path)
 
 

@@ -272,7 +272,8 @@ def test_progress_images_are_saved_next_to_the_actual_output(tmp_path, monkeypat
         kwargs["progress_callback"](
             20, Image.new("RGB", (4, 4), "red" if run == 1 else "yellow")
         )
-        kwargs["progress_callback"](40, Image.new("RGB", (4, 4), "blue"))
+        if run == 1:
+            kwargs["progress_callback"](40, Image.new("RGB", (4, 4), "blue"))
         return Image.new("RGB", (4, 4), "green")
     monkeypatch.setattr(main_module.loom, "weave", weave)
     result = CliRunner().invoke(
@@ -295,6 +296,8 @@ def test_progress_images_are_saved_next_to_the_actual_output(tmp_path, monkeypat
     progress_dir = tmp_path / "woven-progress"
     assert Image.open(progress_dir / "20-percent.png").getpixel((0, 0)) == (255, 0, 0)
     assert Image.open(progress_dir / "40-percent.png").getpixel((0, 0)) == (0, 0, 255)
+    notes = progress_dir / "notes.txt"
+    notes.write_text("user data")
     replaced = CliRunner().invoke(
         main_module.main,
         [
@@ -316,6 +319,8 @@ def test_progress_images_are_saved_next_to_the_actual_output(tmp_path, monkeypat
         255,
         0,
     )
+    assert not (progress_dir / "40-percent.png").exists()
+    assert notes.read_text() == "user data"
 
 
 def test_cancelled_output_does_not_persist_progress(tmp_path, monkeypatch):
